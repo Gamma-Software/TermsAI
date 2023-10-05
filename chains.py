@@ -56,6 +56,31 @@ def check_question_chain(openai_api_key):
     return LLMChain(llm=llm, prompt=prompt, output_key="questions_list")
 
 
+def transform_question_parser(emojify_question: str):
+    """
+    Parse the chain output to a dictionary of questions and emojis.
+    The emojify_question format is:
+    question1 ? / emoji and transformed question
+
+    It must be parsed to:
+    {
+        "question1": {
+            "emoji": "emoji",
+            "transformed_question": "transformed question"
+        }
+    }
+    """
+    parsed_questions = {}
+    for question in emojify_question.split("\n"):
+        if question and question != "-":
+            question = question.strip()
+            question = question.split("/")
+            parsed_questions[question[0].strip()] = {
+                "emoji": question[1].strip().split(" ")[0],
+                "transformed_question": " ".join(question[1].strip().split(" ")[1:])
+            }
+
+
 def transform_question(openai_api_key):
     """ Emojify a question and simplify it."""
     # Instantiate LLM model
@@ -67,11 +92,28 @@ def transform_question(openai_api_key):
     You will be given a question.
     Your goal is to transform the question by adding a corresponding emoji
     and replace the question to 3 words maximum. Remove the question mark.
+    Use this following format for the output:
+    <format_instructions>
+    {format_instructions}
+    </format_instructions>
     <question>
     {question}
     </question>
     emojify_question:"""
-    prompt = PromptTemplate(input_variables=["question"], template=template)
+    format = """
+    ```
+    emojify_question:question1 ? / emoji and transformed question
+    ...
+    ```
+    e.g of questions_list:
+    ```
+    <question>
+    What are the intellectual property rights?
+    </question>
+    emojify_question:What are the intellectual property rights? /👨‍💼 Intellectual Property Rights
+    ```"""
+    prompt = PromptTemplate(input_variables=["question"],
+                            partial_variables={"format_instructions": format}, template=template)
     return LLMChain(llm=llm, prompt=prompt, output_key="emojify_question")
 
 
@@ -91,7 +133,7 @@ def answer_question_chain(openai_api_key):
     <terms>
     {terms}
     </terms>
-    <questions>
+    <question>
     {questions}
     </questions>
     output:"""
