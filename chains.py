@@ -1,166 +1,135 @@
+import os
 from langchain.chains import LLMChain
 from langchain.chat_models import ChatOpenAI
 from langchain.prompts import PromptTemplate
+from langchain.pydantic_v1 import BaseModel, Field
+from langchain.output_parsers import PydanticOutputParser
+from langchain.chains import SequentialChain
+from redis import Redis
+from langchain.cache import RedisCache
+import langchain
+import streamlit as st
+
+os.environ['OPENAI_API_KEY'] = st.secrets["openai_api_key"]
+langchain.debug = st.secrets["langchain"]["debug"]
+langchain.llm_cache = RedisCache(redis_=Redis(host=st.secrets["redis"]["host"],
+                                              port=st.secrets["redis"]["port"], db=0))
 
 
-def check_question_parser(questions: str) -> list:
-    """
-    Parse the ouput string of the check question parser and return a list of questions.
-    """
-    list_questions = []
-    for question in questions.split("\n"):
-        if question and question != "-":
-            list_questions.append(question.strip())
-    return list_questions
-
-
-def check_question_chain(openai_api_key):
-    # Instantiate LLM model
-    llm = ChatOpenAI(temperature=0,
-                     model_name="gpt-3.5-turbo-16k",
-                     openai_api_key=openai_api_key)
-    # Prompt
-    template = """
-    You will be given a question. Your goal is to split the question into multiple one.
-    In case the question is a single question output it as is.
-    You must follow the output format below.
-    <format_instructions>
-    {format_instructions}
-    </format_instructions>
-
-    <question>
-    {question}
-    </question>
-    questions_list:"""
-
-    format = """
-    The output is a list of questions.
-    ```
-    questions_list:
-    - question1 ?
-    - question2 ?
-    ...
-    ```
-    e.g of questions_list:
-    ```
-    <question>
-    What are the intellectual property rights and content usage policies?
-    </question>
-    questions_list:
-    - What are the intellectual property rights ?
-    - What are the content usage policies ?
-    ```"""
-
-    prompt = PromptTemplate(input_variables=["questions"],
-                            partial_variables={"format_instructions": format}, template=template)
-    return LLMChain(llm=llm, prompt=prompt, output_key="questions_list")
-
-
-def transform_question_parser(emojify_question: str):
-    """
-    Parse the chain output to a dictionary of questions and emojis.
-    The emojify_question format is:
-    question1 ? / emoji and transformed question
-
-    It must be parsed to:
-    {
-        "question1": {
-            "emoji": "emoji",
-            "transformed_question": "transformed question"
-        }
-    }
-    """
-    parsed_questions = {}
-    for question in emojify_question.split("\n"):
-        if question and question != "-":
-            question = question.strip()
-            question = question.split("/")
-            parsed_questions[question[0].strip()] = {
-                "emoji": question[1].strip().split(" ")[0],
-                "transformed_question": " ".join(question[1].strip().split(" ")[1:])
-            }
-
-
-def transform_question(openai_api_key):
-    """ Emojify a question and simplify it."""
-    # Instantiate LLM model
-    llm = ChatOpenAI(temperature=0,
-                     model_name="gpt-3.5-turbo-16k",
-                     openai_api_key=openai_api_key)
+def question_to_words_chain(llm):
     # Prompt
     template = """
     You will be given a question.
-    Your goal is to transform the question by adding a corresponding emoji
-    and replace the question to 3 words maximum. Remove the question mark.
-    Use this following format for the output:
-    <format_instructions>
+    Your goal is to transform the question to 3 words maximum. Remove the question mark.
     {format_instructions}
-    </format_instructions>
+
     <question>
     {question}
     </question>
-    emojify_question:"""
+    words:"""
     format = """
     ```
-    emojify_question:question1 ? / emoji and transformed question
+    words:transformed question
     ...
     ```
-    e.g of questions_list:
+    e.g of words:
     ```
     <question>
     What are the intellectual property rights?
     </question>
-    emojify_question:What are the intellectual property rights? /👨‍💼 Intellectual Property Rights
+    words:Intellectual Property Rights
     ```"""
     prompt = PromptTemplate(input_variables=["question"],
                             partial_variables={"format_instructions": format}, template=template)
-    return LLMChain(llm=llm, prompt=prompt, output_key="emojify_question")
+    return LLMChain(llm=llm, prompt=prompt, output_key="words", verbose=True)
 
 
-def answer_question_chain(openai_api_key):
-    # Instantiate LLM model
-    llm = ChatOpenAI(temperature=0,
-                     model_name="gpt-3.5-turbo-16k",
-                     openai_api_key=openai_api_key)
+def words_to_emoji(llm):
+    # Prompt
+    template = """
+    You will be given a set of words.
+    Your goal is to understand the sequence of words and choose the best emoji to describe it.
+    You should only output an emoji.
+    {format_instructions}
+
+    <words>
+    {words}
+    </words>
+    emoji:"""
+    format = """
+    ```
+    emoji:emoji best describing the words
+    ...
+    ```
+    e.g of emoji:
+    ```
+    <words>
+    Intellectual Property Rights
+    </words>
+    emoji:👨‍💼
+    ```"""
+
+    prompt = PromptTemplate(input_variables=["words"],
+                            partial_variables={"format_instructions": format}, template=template)
+    return LLMChain(llm=llm, prompt=prompt, output_key="emoji", verbose=True)
+
+
+# Define your desired data structure.
+class TermsAnswer(BaseModel):
+    answer: str = Field(description="Answer of the question")
+    excerpts: str = Field(description="Phrase from terms that justify the answer")
+
+
+def answer_question_chain(llm):
     # Prompt
     template = """
     Your goal is to read a term of use and answer questions about it.
     Additionnaly, provide excerpts of the text that justify your answer.
-    Follow the output format below.
-    <format_instructions>
     {format_instructions}
-    </format_instructions>
+
     <terms>
     {terms}
     </terms>
     <question>
-    {questions}
-    </questions>
+    {question}
+    </question>
     output:"""
-    format = """
-    ```json
-    output: {
-        "question1": {
-            "answer": "answer of question1",
-            "excerpts" : "excerpts of question1"
-        },
-        "question2": {
-            "answer": "answer of question2",
-            "excerpts" : "excerpts of question2"
-        },
-        ...
-    }
-    ```
-    e.g of output:
-    ```json
-    output: {
-        "Does the website collect personal information from users?": {
-            "answer": "Yes, Instagram collects personal information from its users.",
-            "excerpts" : "Providing our Service requires collecting and using your information"
-            }
-    }
-    ```"""
 
-    prompt = PromptTemplate(input_variables=["terms", "questions"],
-                            partial_variables={"format_instructions": format}, template=template)
-    return LLMChain(llm=llm, prompt=prompt, output_key="output")
+    # Set up a parser + inject instructions into the prompt template.
+    parser = PydanticOutputParser(pydantic_object=TermsAnswer)
+
+    prompt = PromptTemplate(input_variables=["terms", "question"],
+                            partial_variables={
+                                "format_instructions": parser.get_format_instructions()},
+                            template=template)
+    return LLMChain(llm=llm, prompt=prompt, output_key="output", verbose=True)
+
+
+def overall_chain_exec(questions: list, terms: str):
+    llm = ChatOpenAI(temperature=0,
+                     model_name="gpt-3.5-turbo-16k")
+    llm2 = ChatOpenAI(temperature=0,
+                      model_name="gpt-3.5-turbo")
+
+    answers = {}
+
+    seq_chain = SequentialChain(
+        chains=[question_to_words_chain(llm2), words_to_emoji(llm2), answer_question_chain(llm)],
+        input_variables=["terms", "question"],
+        output_variables=["words", "emoji", "output"],
+        verbose=True)
+    for question in questions:
+        term_answer = seq_chain({
+            "terms": terms,
+            "question": question
+            }, return_only_outputs=True)
+
+        # Add the answer to the dictionary
+        parser = PydanticOutputParser(pydantic_object=TermsAnswer)
+        answers[question] = {
+            "emoji": term_answer["emoji"],
+            "words": term_answer["words"],
+            "answer": parser.parse(term_answer["output"]).answer,
+            "excerpts": parser.parse(term_answer["output"]).excerpts,
+        }
+    return answers
