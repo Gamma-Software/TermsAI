@@ -1,6 +1,6 @@
 import json
 import os
-from chains import overall_chain_exec
+from app.module.chains import overall_chain_exec
 
 # Setup langsmith variables
 os.environ['LANGCHAIN_TRACING_V2'] = str(st.secrets["langsmith"]["tracing"])

@@ -1,0 +1,29 @@
+version: '3.8'
+services:
+    redis:
+        image: redislabs/redismod
+        ports:
+          - "16379:6379"
+        volumes:
+          - redis-data:/data
+        command: --dir /data --loadmodule /usr/lib/redis/modules/redistimeseries.so
+
+    app:
+        restart: always
+        build: .
+        ports:
+            - "8080:80"
+        depends_on:
+            - redis
+        command: /start-reload.sh
+
+    test:
+        build: .
+        volumes:
+            - $PWD:/app
+        depends_on:
+            - redis
+        entrypoint: "pytest -s"
+
+volumes:
+    redis-data:
