@@ -13,7 +13,7 @@ st.write("AI will read the terms of use and privacy policy for you and answer qu
          "about it to synthetize the information.")
 
 with st.sidebar:
-    if "openai_api_key" not in st.secrets or "openai_api_key" in st.secrets and st.secrets["openai_api_key"] == "your key here":
+    if "openai_api_key" not in st.secrets or "openai_api_key" in st.secrets:
         openai_api_key = st.text_input("OpenAI API Key", key="chatbot_api_key", type="password")
         if openai_api_key and 'openai_api_key' not in st.session_state:
             st.session_state['openai_api_key'] = openai_api_key
