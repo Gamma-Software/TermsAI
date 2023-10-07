@@ -1,3 +1,5 @@
 streamlit
 openai
 langchain
+redis
+tiktoken
