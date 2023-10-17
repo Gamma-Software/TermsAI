@@ -33,6 +33,7 @@ services:
       - "5050:5050"
 
   flower:
+    image: mher/flower:0.9.7
     ports:
       - "5555:5555"
 
