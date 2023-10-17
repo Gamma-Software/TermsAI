@@ -6,11 +6,11 @@ import pytest
 from asgi_lifespan import LifespanManager
 from httpx import AsyncClient
 
-from app.main import app
-from app.main import config
-from app.main import initialize_redis
-from app.main import Keys
-from app.main import make_keys
+from main import app
+from main import config
+from main import initialize_redis
+from main import Keys
+from main import make_keys
 
 TEST_PREFIX = 'test:is-bitcoin-lit'
 
