@@ -1,6 +1,6 @@
 import os
 import streamlit as st
-from backend.termsai.backend.app.app.llm.chains import (
+from backend.app.app.llm.chains import (
     overall_chain_exec,
     overall_summarize_chain_exec,
     overall_summarize_chain_url_exec,
