@@ -5,6 +5,8 @@ description = ""
 authors = ["Admin <admin@example.com>"]
 
 [tool.poetry.dependencies]
+importlib-metadata="4.13.0"
+httpcore = "0.10"
 python = "^3.7"
 uvicorn = "^0.11.3"
 fastapi = "^0.54.1"

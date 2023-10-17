@@ -1,3 +1,4 @@
+import os
 import secrets
 from typing import Any, Dict, List, Optional, Union
 
@@ -78,8 +79,8 @@ class Settings(BaseSettings):
         )
 
     EMAIL_TEST_USER: EmailStr = "test@example.com"  # type: ignore
-    FIRST_SUPERUSER: EmailStr
-    FIRST_SUPERUSER_PASSWORD: str
+    FIRST_SUPERUSER: EmailStr = os.environ.get("FIRST_SUPERUSER", "test@example.com")
+    FIRST_SUPERUSER_PASSWORD: str = os.environ.get("FIRST_SUPERUSER_PASSWORD", "test-password")
     USERS_OPEN_REGISTRATION: bool = False
 
     class Config:
