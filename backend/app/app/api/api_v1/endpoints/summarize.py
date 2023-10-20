@@ -17,5 +17,5 @@ def summarize_text(
     """
     Summarize text with LLM
     """
-    celery_app.send_task("app.workers.summarizer.summarize_text", args=[text.text])
+    celery_app.send_task("app.worker.summarize_text", args=[text.text])
     return {"msg": "Summarizing"}
