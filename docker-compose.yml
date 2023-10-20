@@ -148,11 +148,11 @@ services:
       - SERVER_HOST=https://${DOMAIN?Variable not set}
       # Allow explicit env var override for tests
       - SMTP_HOST=${SMTP_HOST}
-    build:
-      context: ./backend
-      dockerfile: backend.dockerfile
-      args:
-        INSTALL_DEV: ${INSTALL_DEV-false}
+    #build:
+    #  context: ./backend
+    #  dockerfile: backend.dockerfile
+    #  args:
+    #    INSTALL_DEV: ${INSTALL_DEV-false}
     deploy:
       labels:
         - traefik.enable=true
@@ -180,10 +180,10 @@ services:
 
   frontend:
     image: '${DOCKER_IMAGE_FRONTEND?Variable not set}:${TAG-latest}'
-    build:
-      context: ./frontend
-      args:
-        FRONTEND_ENV: ${FRONTEND_ENV-production}
+    #build:
+    #  context: ./frontend
+    #  args:
+    #    FRONTEND_ENV: ${FRONTEND_ENV-production}
     deploy:
       labels:
         - traefik.enable=true
