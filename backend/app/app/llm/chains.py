@@ -274,7 +274,7 @@ def overall_summarize_chain_url_exec(terms_url: str):
 
 def summarize_chain_exec(terms: str):
     llm = ChatOpenAI(temperature=0, model_name="gpt-3.5-turbo-16k")
-    chain = load_summarize_chain(llm, chain_type="map_reduce")
+    chain = load_summarize_chain(llm, chain_type="stuff")
     docs = [Document(page_content=terms)]
     return chain.run(docs)
 
