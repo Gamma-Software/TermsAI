@@ -10,6 +10,14 @@ from backend.app.app.llm.chains import (
 )
 
 # Setup langsmith variables
+import langchain
+langchain.debug = st.secrets["langchain"]["debug"]
+langchain.debug = True
+#from redis import Redis
+#from langchain.cache import RedisCache
+#langchain.llm_cache = RedisCache(redis_=Redis(host=st.secrets["redis"]["host"],
+#                                              port=st.secrets["redis"]["port"], db=0))
+os.environ['OPENAI_API_KEY'] = st.secrets["openai_api_key"]
 os.environ['LANGCHAIN_TRACING_V2'] = str(st.secrets["langsmith"]["tracing"])
 os.environ['LANGCHAIN_ENDPOINT'] = st.secrets["langsmith"]["api_url"]
 os.environ['LANGCHAIN_API_KEY'] = st.secrets["langsmith"]["api_key"]

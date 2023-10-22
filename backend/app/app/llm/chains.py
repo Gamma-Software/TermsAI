@@ -15,17 +15,6 @@ from langchain.document_loaders import SeleniumURLLoader
 from langchain.document_transformers import BeautifulSoupTransformer
 from langchain.document_loaders import PlaywrightURLLoader
 
-#from redis import Redis
-#from langchain.cache import RedisCache
-import langchain
-import streamlit as st
-
-os.environ['OPENAI_API_KEY'] = st.secrets["openai_api_key"]
-langchain.debug = st.secrets["langchain"]["debug"]
-langchain.debug = True
-#langchain.llm_cache = RedisCache(redis_=Redis(host=st.secrets["redis"]["host"],
-#                                              port=st.secrets["redis"]["port"], db=0))
-
 
 def question_to_words_chain(llm):
     # Prompt
