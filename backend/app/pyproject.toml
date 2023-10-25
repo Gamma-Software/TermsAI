@@ -31,6 +31,8 @@ langchain = "^0.0.320"
 tiktoken = "^0.5.1"
 chromadb = "^0.4.14"
 beautifulsoup4 = "^4.12.2"
+playwright = "^1.39.0"
+unstructured = "^0.10.25"
 
 [tool.poetry.dev-dependencies]
 mypy = "^0.770"

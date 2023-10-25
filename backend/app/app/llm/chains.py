@@ -1,4 +1,3 @@
-import os
 from langchain.chains import LLMChain
 from langchain.chat_models import ChatOpenAI
 from langchain.prompts import PromptTemplate
@@ -10,9 +9,6 @@ from langchain.chains import ReduceDocumentsChain, MapReduceDocumentsChain, Stuf
 from langchain.docstore.document import Document
 from langchain.chains.summarize import load_summarize_chain
 from langchain.document_loaders import WebBaseLoader
-from langchain.document_loaders import AsyncChromiumLoader
-from langchain.document_loaders import SeleniumURLLoader
-from langchain.document_transformers import BeautifulSoupTransformer
 from langchain.document_loaders import PlaywrightURLLoader
 
 
@@ -77,7 +73,8 @@ def words_to_emoji(llm):
 # Define your desired data structure.
 class TermsAnswer(BaseModel):
     answer: str = Field(description="Answer of the question")
-    excerpts: str = Field(description="Phrase from terms that justify the answer")
+    excerpts: str = Field(
+        description="Phrase from terms that justify the answer")
 
 
 def answer_question_chain(llm):
@@ -114,7 +111,8 @@ def overall_chain_exec(questions: list, terms: str):
     answers = {}
 
     seq_chain = SequentialChain(
-        chains=[question_to_words_chain(llm2), words_to_emoji(llm2), answer_question_chain(llm)],
+        chains=[question_to_words_chain(llm2), words_to_emoji(
+            llm2), answer_question_chain(llm)],
         input_variables=["terms", "question"],
         output_variables=["words", "emoji", "output"],
         verbose=True)
@@ -122,7 +120,7 @@ def overall_chain_exec(questions: list, terms: str):
         term_answer = seq_chain({
             "terms": terms,
             "question": question
-            }, return_only_outputs=True)
+        }, return_only_outputs=True)
 
         # Add the answer to the dictionary
         parser = PydanticOutputParser(pydantic_object=TermsAnswer)
@@ -144,18 +142,20 @@ def overall_chain_url_exec(questions: list, terms_url: str):
     answers = {}
 
     seq_chain = SequentialChain(
-        chains=[question_to_words_chain(llm2), words_to_emoji(llm2), answer_question_chain(llm)],
+        chains=[question_to_words_chain(llm2), words_to_emoji(
+            llm2), answer_question_chain(llm)],
         input_variables=["terms", "question"],
         output_variables=["words", "emoji", "output"],
         verbose=True)
-    loader = PlaywrightURLLoader(urls=[terms_url], remove_selectors=["header", "footer"])
+    loader = PlaywrightURLLoader(
+        urls=[terms_url], remove_selectors=["header", "footer"])
     docs = loader.load()
 
     for question in questions:
         term_answer = seq_chain({
             "terms": " ".join([doc.page_content for doc in docs]),
             "question": question
-            }, return_only_outputs=True)
+        }, return_only_outputs=True)
 
         # Add the answer to the dictionary
         parser = PydanticOutputParser(pydantic_object=TermsAnswer)
@@ -279,7 +279,7 @@ def summarize_chain_exec(terms: str):
     return chain.run(docs)
 
 
-def summarize_chain_url_exec(terms_url: str):
+def summarize_chain_url_exec_old(terms_url: str):
     llm = ChatOpenAI(temperature=0, model_name="gpt-3.5-turbo-16k")
 
     prompt_template = """The following is set of summaries:
@@ -289,7 +289,8 @@ def summarize_chain_url_exec(terms_url: str):
     Take these and distill it into a final, consolidated summary.
     Remember the summaries comes from term of use and general policy of a website or application, so it's not necessary to mention it.
     CONCISE SUMMARY:"""
-    combine_prompt = PromptTemplate(template=prompt_template, input_variables=["text"])
+    combine_prompt = PromptTemplate(
+        template=prompt_template, input_variables=["text"])
 
     prompt_template = """The following is a set of documents that represents the term of use and general policy of a website or application.
     The documents are parsed from an html page and may contain some elements unrelated to the term of use, ignore them:
@@ -299,15 +300,45 @@ def summarize_chain_url_exec(terms_url: str):
     Based on this list of documents, please summaries them and highlights the key points that a user of the website or application might be interested.
     Remember the summaries comes from term of use and general policy of a website or application, so it's not necessary to mention it.
     CONCISE SUMMARY:"""
-    map_prompt = PromptTemplate(template=prompt_template, input_variables=["text"])
+    map_prompt = PromptTemplate(
+        template=prompt_template, input_variables=["text"])
 
     chain = load_summarize_chain(llm, chain_type="map_reduce",
                                  map_prompt=map_prompt,
                                  combine_prompt=combine_prompt)
-    loader = PlaywrightURLLoader(urls=[terms_url], remove_selectors=["header", "footer"])
+    loader = PlaywrightURLLoader(
+        urls=[terms_url], remove_selectors=["header", "footer"])
     print("load")
     docs = loader.load()
     print("loaded")
-    if docs and len(docs) > 0:
-        return chain.run(docs)
-    return "No data"
+    if not docs or len(docs) == 0:
+        raise Exception("No data")
+    return chain.run(docs)
+
+
+def summarize_chain_url_exec(terms_url: str):
+    prompt_template = """The following is an website content that represents the term of use and general policy of a website or application.
+    Write a concise summary of the following:
+
+    "{text}"
+
+    CONCISE SUMMARY:"""
+    prompt = PromptTemplate.from_template(prompt_template)
+
+    # Define LLM chain
+    llm = ChatOpenAI(temperature=0, model_name="gpt-3.5-turbo-16k")
+    llm_chain = LLMChain(llm=llm, prompt=prompt)
+
+    # Define StuffDocumentsChain
+    stuff_chain = StuffDocumentsChain(
+        llm_chain=llm_chain, document_variable_name="text"
+    )
+
+    loader = PlaywrightURLLoader(
+        urls=[terms_url], remove_selectors=["header", "footer"])
+    print("load")
+    docs = loader.load()
+    print("loaded")
+    if not docs or len(docs) == 0:
+        raise Exception("No data")
+    return stuff_chain.run(docs)

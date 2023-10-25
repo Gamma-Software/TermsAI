@@ -1,46 +1,84 @@
 import os
 import streamlit as st
-from backend.app.app.llm.chains import (
-    overall_chain_exec,
-    overall_summarize_chain_exec,
-    overall_summarize_chain_url_exec,
-    overall_chain_url_exec,
-    summarize_chain_url_exec,
-    summarize_chain_exec
-)
+import requests
 
-# Setup langsmith variables
-import langchain
-langchain.debug = st.secrets["langchain"]["debug"]
-langchain.debug = True
+
+def get_token(username: str, password: str) -> str:
+    """Get token from backend API"""
+
+    url = "http://localhost:83/api/v1/login/access-token"
+    payload = "grant_type=&username={}&password={}&scope=&client_id=&client_secret=".format(username, password)
+    headers = {
+        'accept': 'application/json',
+        'Content-Type': 'application/x-www-form-urlencoded'
+    }
+
+    response = requests.request("POST", url, headers=headers, data=payload)
+    return response.json()["access_token"]
+
+def overall_chain_exec(questions, text):
+    raise NotImplementedError("Not implemented yet")
+    pass
+
+def add_task_summarize_chain_exec(bearer_token, text):
+    """ Add a task to the summarize chain execution queue """
+    with open("tmp.txt", "w") as f:
+        f.write(text)
+    url = "http://192.168.1.34:83/api/v1/summarize/file"
+    payload = {}
+    files = [
+        ('file', open("tmp.txt", 'rb'))
+    ]
+    headers = {
+        'accept': 'application/json',
+        'Authorization': 'Bearer {}'.format(bearer_token),
+        'Content-Type': 'type=text/plain'
+    }
+    response = requests.request("POST", url, headers=headers, data=payload, files=files)
+    os.remove("tmp.txt")
+    json_response = response.json()
+    if response.status_code != 200:
+        raise Exception("Error: {}".format(json_response))
+    return json_response["result"]["task_id"]
+
+def get_task_summarize_chain_exec_result(bearer_token, task_id):
+    """curl -X 'GET' \
+  'http://192.168.1.34:83/api/v1/summarize/task?id=0' \
+  -H 'accept: application/json'"""
+    url = "http://localhost:83/api/v1/summarize/task?id={}".format(task_id)
+    headers = {
+        'accept': 'application/json',
+        'Authorization': 'Bearer {}'.format(bearer_token),
+    }
+    response = requests.request("GET", url, headers=headers)
+    json_response = response.json()
+    if response.status_code != 200:
+        raise Exception("Error: {}".format(json_response))
+    return json_response["result"]
+
+st.set_page_config(layout="wide")
+
 #from redis import Redis
 #from langchain.cache import RedisCache
 #langchain.llm_cache = RedisCache(redis_=Redis(host=st.secrets["redis"]["host"],
 #                                              port=st.secrets["redis"]["port"], db=0))
-os.environ['OPENAI_API_KEY'] = st.secrets["openai_api_key"]
-os.environ['LANGCHAIN_TRACING_V2'] = str(st.secrets["langsmith"]["tracing"])
-os.environ['LANGCHAIN_ENDPOINT'] = st.secrets["langsmith"]["api_url"]
-os.environ['LANGCHAIN_API_KEY'] = st.secrets["langsmith"]["api_key"]
-os.environ['LANGCHAIN_PROJECT'] = st.secrets["langsmith"]["project"]
+
+with st.sidebar:
+    user = st.text_input("Username", value="")
+    password = st.text_input("Password", value="", type="password")
+    token = None
+    if user and password:
+        token = get_token(user, password)
+    choice = st.selectbox("Menu", ["question/answer", "summarize"])
+
+if not token:
+    st.write("Enter username and password to get started.")
+    st.stop()
+
 
 st.title("Terms of Use")
 st.write("AI will read the terms of use and privacy policy for you and answer questions "
          "about it to synthetize the information.")
-
-with st.sidebar:
-    if "openai_api_key" not in st.secrets or "openai_api_key" in st.secrets:
-        openai_api_key = st.text_input("OpenAI API Key", key="chatbot_api_key", type="password")
-        if openai_api_key and 'openai_api_key' not in st.session_state:
-            st.session_state['openai_api_key'] = openai_api_key
-        "[Get an OpenAI API key](https://platform.openai.com/account/api-keys)"
-    else:
-        st.session_state['openai_api_key'] = st.secrets["openai_api_key"]
-
-    choice = st.selectbox("Menu", ["question/answer", "summarize"])
-
-if 'openai_api_key' not in st.session_state:
-    st.info("Please add your OpenAI API key to continue.")
-    st.stop()
 
 terms = st.text_area("Enter Terms of use:", "")
 terms_url = st.text_area("Or enter Terms of use from URL", "")
@@ -80,7 +118,16 @@ if choice == "summarize":
     if st.button("Summarize"):
         with st.spinner("Summarizing..."):
             if terms != "":
-                summary = summarize_chain_exec(terms)
-            elif terms_url != "":
-                summary = summarize_chain_url_exec(terms_url)
+                task_id = add_task_summarize_chain_exec(token, terms)
+            #elif terms_url != "":
+            #    summary = summarize_chain_url_exec(terms_url)
+            got_summary = False
+            while not got_summary:
+                try:
+                    summary = get_task_summarize_chain_exec_result(token, task_id)
+                except Exception as e:
+                    pass
+                if summary:
+                    got_summary = True
+                    break
             st.write(summary)
