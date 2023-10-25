@@ -6,5 +6,7 @@ celery_app.conf.task_routes = {
     "app.worker.test_celery": "main-queue",
     "app.worker.summarize_text": "main-queue",
     "app.worker.summarize_url": "main-queue",
+    "app.worker.question_text": "main-queue",
+    "app.worker.question_url": "main-queue",
 }
 #celery_app.conf.task_reject_on_worker_lost = True
