@@ -3,12 +3,14 @@ from fastapi import UploadFile, File
 
 
 class QuestionText(BaseModel):
-    text: str
+    terms: str
+    question: str
 
 
 class QuestionFile(BaseModel):
-    file: UploadFile = File(...)
+    question: str
 
 
 class QuestionUrl(BaseModel):
     url: str
+    question: str

@@ -13,21 +13,20 @@ router = APIRouter()
 
 @router.post("/text", status_code=201)
 async def question_text(
-    terms: str,
-    question: str,
+    data : schemas.QuestionText,
     current_user: models.User = Depends(deps.get_current_active_superuser),
 ) -> Any:
     """
     Question text with LLM
     """
-    task = celery_app.send_task("app.worker.question_text", args=[question, terms])
+    task = celery_app.send_task("app.worker.question_text", args=[data.question, data.terms])
     return {"id": task.id}
 
 
 @router.post("/file", status_code=201)
 async def question_file(
+    data : schemas.QuestionFile,
     file: UploadFile = File(...),
-    question: str,
     current_user: models.User = Depends(deps.get_current_active_superuser),
 ) -> Any:
     """
@@ -58,15 +57,14 @@ async def question_file(
 
     task = celery_app.send_task(
         "app.worker.question_text",
-        args=[contents, question]
+        args=[data.question, contents]
     )
     return {"id": task.id}
 
 
 @router.post("/url", status_code=201)
 async def question_url(
-    url: str,
-    question: str,
+    data : schemas.QuestionUrl,
     current_user: models.User = Depends(deps.get_current_active_superuser),
 ) -> Any:
     """
@@ -74,7 +72,7 @@ async def question_url(
     """
     task = celery_app.send_task(
         "app.worker.question_url",
-        args=[url, question]
+        args=[data.question, data.url]
     )
     return {"id": task.id}
 
