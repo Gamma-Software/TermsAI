@@ -4,7 +4,7 @@ This document describes the milestones of the TermsAI project.
 
 ## Milestone 1: Simple POC
 
-We answer the user's questions from a text input through a simple interface like Streamlit. We focus on user contracts. We also provide a summary of the text.
+We answer the user's questions from a text input (Text / PDF / JPEG) through a simple interface like Streamlit. We focus on user contracts. We also provide a summary of the text.
 
 ## Milestone 2: API building
 
