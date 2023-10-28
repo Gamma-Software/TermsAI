@@ -5,3 +5,5 @@ redis
 tiktoken
 chromadb
 beautifulsoup4
+pypdf
+rapidocr_onnxruntime
