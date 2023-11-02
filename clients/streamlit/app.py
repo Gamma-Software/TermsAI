@@ -10,7 +10,7 @@ from chains import (
     simple_qa_chain,
     simple_qa_chain_long
 )
-from process_doc.extract import extract_clean_doc, embedd_doc
+from process_doc.process import extract_clean_doc, embedd_doc
 from io import StringIO
 
 # Setup langsmith variables
@@ -23,7 +23,7 @@ st.title("Read my contract")
 st.write("This application will read you contract and answer to any question you might have.")
 
 with st.sidebar:
-    if "openai_api_key" not in st.secrets or "openai_api_key" in st.secrets:
+    if "openai_api_key" not in st.secrets:
         openai_api_key = st.text_input("OpenAI API Key", key="chatbot_api_key", type="password")
         if openai_api_key and 'openai_api_key' not in st.session_state:
             st.session_state['openai_api_key'] = openai_api_key
@@ -114,11 +114,11 @@ if col2.button("Answer"):
     #for k, v in answers.items():
     #    question_container.markdown(v["emoji"] + v["words"])
     #    st.markdown(">" + v["output"]["answer"] + " " + v["output"]["excerpts"])
-    with st.expander("Docs"):
-        question_container.write(docs)
-    question_container.write(answers["output_text"])
-    #question_container.write(docs_2)
-    #question_container.write(answers_2)
+        with st.expander("Docs"):
+            question_container.write(docs)
+        question_container.write(answers["output_text"])
+        #question_container.write(docs_2)
+        #question_container.write(answers_2)
 
 """
 ## Summarize the terms of use and privacy policy
