@@ -10,7 +10,7 @@ from chains import (
     simple_qa_chain,
     simple_qa_chain_long
 )
-from clients.streamlit.process_doc.process_doc import extract_clean_doc, embedd_doc
+from process_doc.extract import extract_clean_doc, embedd_doc
 from io import StringIO
 
 # Setup langsmith variables

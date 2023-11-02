@@ -11,6 +11,7 @@ from utils import (
 from typing import List
 import re
 
+
 def extract_clean_doc(data) -> List[Document]:
     """
     This function extract the text from any form of documents and cleans it.
