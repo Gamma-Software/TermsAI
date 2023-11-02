@@ -14,6 +14,11 @@ from langchain.document_loaders import AsyncChromiumLoader
 from langchain.document_loaders import SeleniumURLLoader
 from langchain.document_transformers import BeautifulSoupTransformer
 from langchain.document_loaders import PlaywrightURLLoader
+from langchain.chains.qa_with_sources import load_qa_with_sources_chain
+from langchain.chains.question_answering import load_qa_chain
+from langchain.schema.vectorstore import VectorStoreRetriever
+from langchain.chains import RetrievalQA
+from langchain.llms import OpenAI
 
 #from redis import Redis
 #from langchain.cache import RedisCache
@@ -322,3 +327,37 @@ def summarize_chain_url_exec(terms_url: str):
     if docs and len(docs) > 0:
         return chain.run(docs)
     return "No data"
+
+
+def simple_qa_chain(query, docsearch: VectorStoreRetriever):
+    prompt_template = """Use the following pieces of context to answer the question at the end. If you don't know the answer, just say that you don't know, don't try to make up an answer.
+
+    {context}
+
+    Question: {question}
+    Answer and give an excerpt to validate the answer in {language}:"""
+    PROMPT = PromptTemplate(
+        template=prompt_template, input_variables=["context", "question"]
+    )
+
+    # Get the 3 most relevant documents
+    docs = docsearch.get_relevant_documents(query)[:3]
+    chain = load_qa_chain(OpenAI(temperature=0), chain_type="stuff", prompt=PROMPT)
+    return docs, chain({"input_documents": docs, "question": query, "language": "English"}, return_only_outputs=True)
+
+
+def simple_qa_chain_long(query, docs):
+    prompt_template = """Use the following pieces of context to answer the question at the end. If you don't know the answer, just say that you don't know, don't try to make up an answer.
+
+    {context}
+
+    Question: {question}
+    Answer and give an excerpt to validate the answer in {language}:"""
+    PROMPT = PromptTemplate(
+        template=prompt_template, input_variables=["context", "question"]
+    )
+
+    # Get the 3 most relevant documents
+    llm = ChatOpenAI(temperature=0, model_name="gpt-3.5-turbo-16k")
+    chain = load_qa_chain(llm, chain_type="stuff", prompt=PROMPT)
+    return docs, chain({"input_documents": docs, "question": query, "language": "English"}, return_only_outputs=True)

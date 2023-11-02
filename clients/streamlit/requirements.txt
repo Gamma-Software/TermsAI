@@ -7,3 +7,5 @@ chromadb
 beautifulsoup4
 pypdf
 rapidocr_onnxruntime
+redisvl
+chromadb

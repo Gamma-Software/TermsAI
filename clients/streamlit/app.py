@@ -6,9 +6,12 @@ from chains import (
     overall_summarize_chain_url_exec,
     overall_chain_url_exec,
     summarize_chain_url_exec,
-    summarize_chain_exec
+    summarize_chain_exec,
+    simple_qa_chain,
+    simple_qa_chain_long
 )
-from doc_extract import extract_doc
+from clients.streamlit.process_doc.process_doc import extract_clean_doc, embedd_doc
+from io import StringIO
 
 # Setup langsmith variables
 os.environ['LANGCHAIN_TRACING_V2'] = str(st.secrets["langsmith"]["tracing"])
@@ -27,6 +30,8 @@ with st.sidebar:
         "[Get an OpenAI API key](https://platform.openai.com/account/api-keys)"
     else:
         st.session_state['openai_api_key'] = st.secrets["openai_api_key"]
+    if "openai_api_key" in st.session_state:
+        os.environ['OPENAI_API_KEY'] = st.session_state['openai_api_key']
 
 if 'openai_api_key' not in st.session_state:
     st.info("Please add your OpenAI API key to continue.")
@@ -40,33 +45,54 @@ Do you want to upload a PDF, a photo or enter the raw text?
 
 choice = st.selectbox("Select", ("Raw text", "PDF", "Photo"))
 data = None
-extracted_data = None
+if "extracted_data" not in st.session_state:
+    st.session_state["extracted_data"] = None
+
+if "vector_store" not in st.session_state:
+    st.session_state["vector_store"] = None
 
 if choice == "Raw text":
-    text = st.text_area("Enter the raw text:", "")
+    text = st.text_area("Enter the raw text:", st.session_state["extracted_data"] if "extracted_data" in st.session_state else "")
     if text:
         data = {"text": text}
 
 if choice == "PDF":
-    pdf = st.file_uploader("Upload a PDF file", type=["pdf"])
-    if pdf:
-        data = {"pdf": pdf}
+    uploaded_file = st.file_uploader("Upload a PDF file", type=["pdf"])
+    # write the stream in a file
+    if uploaded_file is not None:
+        # Write it into a temp file
+        temp_file = "/tmp/temp.pdf"
+        with open(temp_file, "wb") as f:
+            f.write(uploaded_file.getvalue())
+        data = {"pdf": temp_file}
 
 if choice == "Photo":
     pic = st.file_uploader("Upload a photo", type=["png", "jpg", "jpeg"])
     if pic:
         data = {"pic": pic}
 
-with st.spinner("Processing..."):
-    # We process the pdf or photo to extract the text
-    # And create a vector store to each 5 sentences
-    extracted_data = extract_doc(data)
+process_button = st.button("Process data")
 
-if not data or not extracted_data:
+if not data:
     st.stop()
 
+if process_button:
+    with st.spinner("Processing..."):
+        # We process the pdf or photo to extract the text
+        # And create a vector store to each paragraph
+        st.session_state["extracted_data"] = extract_clean_doc(data)
+        st.write(st.session_state["extracted_data"])
+        st.session_state["vector_store"] = embedd_doc(st.session_state["extracted_data"])
+
+
+if not st.session_state["extracted_data"] or not st.session_state["vector_store"]:
+    st.stop()
+
+with st.expander("Show extracted data"):
+    st.write(st.session_state["extracted_data"])
+
 """
-## Questions
+## 2/3 Questions
 Now you can ask questions about the terms of use and privacy policy.
 e.g:
 - Does the website collect personal information from your users?
@@ -80,14 +106,19 @@ question_container = st.container()
 col1, col2 = question_container.columns([0.75, 0.25])
 question = col1.text_input("Question ", value="")
 if col2.button("Answer"):
-    if terms != "":
-        answers = overall_chain_exec([question], terms)
-    elif terms_url != "":
-        answers = overall_chain_url_exec([question], terms_url)
-    for k, v in answers.items():
-        question_container.markdown(v["emoji"] + v["words"])
-        st.markdown(">" + v["output"]["answer"] + " " + v["output"]["excerpts"])
-    question_container.write(answers)
+    if st.session_state["vector_store"] != None:
+        docs, answers = simple_qa_chain(question, st.session_state["vector_store"])
+        #docs_2, answers_2 = simple_qa_chain_long(question, st.session_state["extracted_data"])
+    #elif terms_url != "":
+    #    answers = overall_chain_url_exec([question], terms_url)
+    #for k, v in answers.items():
+    #    question_container.markdown(v["emoji"] + v["words"])
+    #    st.markdown(">" + v["output"]["answer"] + " " + v["output"]["excerpts"])
+    with st.expander("Docs"):
+        question_container.write(docs)
+    question_container.write(answers["output_text"])
+    #question_container.write(docs_2)
+    #question_container.write(answers_2)
 
 """
 ## Summarize the terms of use and privacy policy
