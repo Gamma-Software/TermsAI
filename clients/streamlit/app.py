@@ -34,12 +34,14 @@ with st.sidebar:
     if "openai_api_key" in st.session_state:
         os.environ['OPENAI_API_KEY'] = st.session_state['openai_api_key']
 
+    features = st.radio("Use cases", ("Question Answering", "Summarization", "Integrate Metadata"))
+
 if 'openai_api_key' not in st.session_state:
     st.info("Please add your OpenAI API key to continue.")
     st.stop()
 
 """
-## 1) Retrieve Terms of contract
+## Retrieve Terms of contract
 """
 data = None
 if "extracted_data" not in st.session_state:
@@ -48,14 +50,17 @@ if "extracted_data" not in st.session_state:
 if "vector_store" not in st.session_state:
     st.session_state["vector_store"] = None
 
-choice = st.radio("How do you want to retrieve the Terms of the contract ?",
-                  ("Upload a file", "Enter the raw text"))
+if features != "Integrate Metadata":
+    choice = st.radio("How do you want to retrieve the Terms of the contract ?",
+                    ("Upload a file", "Enter the raw text"))
+else:
+    choice = "Upload a file"
 
 if choice == "Upload a file":
     uploaded_file = st.file_uploader(
-        "Upload a file",
+        "Upload contract PDFs" if features == "Integrate Metadata" else "Upload a file",
         type=["pdf", "png", "jpg", "jpeg"],
-        accept_multiple_files=False,
+        accept_multiple_files=features == "Integrate Metadata",
         help="could be a picture or a pdf")
     # write the stream in a file
     if uploaded_file is not None:
@@ -76,9 +81,32 @@ else:
     if text:
         data = {"text": text}
 
-process_button = st.button("Process data")
+if features == "Question Answering":
+    """
+    ## Questions
 
-if process_button:
+    Now you can ask questions about the terms of use and privacy policy.
+    e.g:
+    - Does the website collect personal information from your users?
+    - Does the website send emails or newsletters to users?
+    - Does the website use any digital analytics software for tracking purposes?
+    - Does the website show ads?
+    - Does the website use retargeting for advertising?
+    """
+    questions = st.text_area("Question ",
+                            placeholder="Does the website collect personal information from your users?\nDoes the website use any digital analytics software for tracking purposes?")
+    questions = questions.split("\n")
+    button_ = st.button("Answer")
+
+if features == "Summarization":
+    """
+    ## Summarize the terms of use and privacy policy
+
+    You can summarize the terms of use and privacy policy by clicking the button below.
+    """
+    button_ = st.button("Summarize")
+
+if button_:
     with st.status("Processing file(s)...", expanded=True) as status:
         # We process the pdf or photo to extract the text
         # And create a vector store to each paragraph
@@ -90,58 +118,32 @@ if process_button:
         status.update(label="Embed the text in vector store...", expanded=True)
         st.session_state["vector_store"] = embedd_doc(st.session_state["extracted_data"])
 
-        status.update(label="Processing complete!", state="complete", expanded=False)
+        if not st.session_state["extracted_data"] or not st.session_state["vector_store"]:
+            st.stop()
+            status.update(label="Processing of files failed !", state="error", expanded=False)
 
+        if features == "Summarization":
+            status.update(label="Summarizing...", state="running", expanded=True)
+            summary = summarize_chain_doc_exec(st.session_state["extracted_data"])
+            st.write(summary)
+            status.update(label="Summarized!", state="complete", expanded=True)
 
-if not st.session_state["extracted_data"] or not st.session_state["vector_store"]:
-    st.stop()
+        if features == "Question Answering":
+            for id, question in enumerate(questions):
+                if question == "":
+                    continue
+                status.update(label=f"Answer question(s)... {id}/{len(questions)}", expanded=True)
+                docs, answers = simple_qa_chain(question, st.session_state["vector_store"])
+                #docs_2, answers_2 = simple_qa_chain_long(question, st.session_state["extracted_data"])
+            #elif terms_url != "":
+            #    answers = overall_chain_url_exec([question], terms_url)
+            #for k, v in answers.items():
+            #    question_container.markdown(v["emoji"] + v["words"])
+            #    st.markdown(">" + v["output"]["answer"] + " " + v["output"]["excerpts"])
+                st.write(question)
+                st.caption(answers["output_text"])
+                st.divider()
+                #question_container.write(docs_2)
+                #question_container.write(answers_2)
+            status.update(label="Question(s) answered!", state="complete", expanded=True)
 
-with st.expander("Show extracted data"):
-    st.write(st.session_state["extracted_data"])
-"""
-## 2) Questions
-
-Now you can ask questions about the terms of use and privacy policy.
-e.g:
-- Does the website collect personal information from your users?
-- Does the website send emails or newsletters to users?
-- Does the website use any digital analytics software for tracking purposes?
-- Does the website show ads?
-- Does the website use retargeting for advertising?
-"""
-questions = st.text_area("Question ",
-                        placeholder="Does the website collect personal information from your users?\nDoes the website use any digital analytics software for tracking purposes?")
-questions = questions.split("\n")
-answer = st.button("Answer")
-if answer:
-    with st.status("Answer question(s)...", expanded=True) as status:
-        for id, question in enumerate(questions):
-            if question == "":
-                continue
-            status.update(label=f"Answer question(s)... {id}/{len(questions)}", expanded=True)
-            docs, answers = simple_qa_chain(question, st.session_state["vector_store"])
-            #docs_2, answers_2 = simple_qa_chain_long(question, st.session_state["extracted_data"])
-        #elif terms_url != "":
-        #    answers = overall_chain_url_exec([question], terms_url)
-        #for k, v in answers.items():
-        #    question_container.markdown(v["emoji"] + v["words"])
-        #    st.markdown(">" + v["output"]["answer"] + " " + v["output"]["excerpts"])
-            st.write(question)
-            st.caption(answers["output_text"])
-            st.divider()
-            #question_container.write(docs_2)
-            #question_container.write(answers_2)
-        status.update(label="Question(s) answered!", state="complete", expanded=True)
-
-
-"""
-## 3) Summarize the terms of use and privacy policy
-
-You can summarize the terms of use and privacy policy by clicking the button below.
-"""
-summarize = st.button("Summarize")
-if summarize:
-    with st.status("Summarizing...", expanded=False) as status:
-        summary = summarize_chain_doc_exec(st.session_state["extracted_data"])
-        st.write(summary)
-        status.update(label="Summarized!", state="complete", expanded=True)
