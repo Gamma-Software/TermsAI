@@ -53,9 +53,10 @@ choice = st.radio("How do you want to retrieve the Terms of the contract ?",
 
 if choice == "Upload a file":
     uploaded_file = st.file_uploader(
-        "Upload a file (could be a picture or a pdf)",
+        "Upload a file",
         type=["pdf", "png", "jpg", "jpeg"],
-        accept_multiple_files=False)
+        accept_multiple_files=False,
+        help="could be a picture or a pdf")
     # write the stream in a file
     if uploaded_file is not None:
         # Write it into a temp file
