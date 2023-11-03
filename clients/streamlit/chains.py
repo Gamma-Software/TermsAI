@@ -288,7 +288,6 @@ def overall_summarize_chain_url_exec(terms_url: str):
 
     return map_reduce_chain.run(split_docs)
 
-
 def summarize_chain_exec(terms: str):
     llm = ChatOpenAI(temperature=0, model="gpt-3.5-turbo")
     chain = load_summarize_chain(llm, chain_type="map_reduce")
