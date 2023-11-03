@@ -4,7 +4,11 @@ from langchain.schema.vectorstore import VectorStoreRetriever
 from langchain.embeddings import OpenAIEmbeddings
 from langchain.text_splitter import CharacterTextSplitter
 from langchain.vectorstores.chroma import Chroma
-from process_doc.utils import (extract_text_from_searchable_pdf, convert_pdf_to_searchable, get_pdf_number_pages)
+from process_doc.utils import (
+    extract_text_from_searchable_pdf,
+    convert_pdf_to_searchable,
+    get_pdf_number_pages,
+    extract_text_from_jpeg)
 
 from typing import List
 import re
@@ -26,19 +30,25 @@ def extract_clean_doc(data) -> List[Document]:
 
     if "pdf" in data:
         # OCR the pdf to make it searchable if necessary
-        convert_pdf_to_searchable(data["pdf"], data["pdf"])
+        searchable = convert_pdf_to_searchable(data["pdf"], data["pdf"])
         total_pages = get_pdf_number_pages(data["pdf"])
-        for page_id in range(total_pages):
+        for page_id, is_searchable in searchable:
             content = extract_text_from_searchable_pdf(data["pdf"], page_id)
             extracted_docs.append(Document(
                 page_content=remove_extra_newlines.sub("\n\n", content),
                 metadata={
                     "type": "pdf",
                     "page": page_id,
+                    "ocr": not is_searchable,
                     "total_pages": total_pages
                 }))
     if "pic" in data:
-        raise NotImplementedError("Image extraction not implemented yet")
+        extracted_docs.append(Document(
+            page_content=remove_extra_newlines.sub(
+                "\n\n", extract_text_from_jpeg(data["pic"])),
+            metadata={
+                "type": "pic",
+            }))
     if "text" in data:
         clean_text = remove_extra_newlines.sub("\n\n", data["text"])
         extracted_docs = [Document(page_content=clean_text, metadata={"type": "text"})]
