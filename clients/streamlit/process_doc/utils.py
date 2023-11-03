@@ -7,6 +7,7 @@ import streamlit as st
 from typing import List
 import PyPDF2
 import shutil
+import pdfplumber
 
 
 #endpoint=st.secrets["ocrspace"]["endpoint"],
@@ -18,19 +19,21 @@ def get_pdf_searchable_pages(file_path):
     """ Parse the pdf and result the pages that are searchable and the ones that are not
     If false -> the page is not searchable"""
     result = []
-    page_num = 0
+    page_num = None
     with open(file_path, 'rb') as infile:
         for page_num, page in enumerate(PDFPage.get_pages(infile)):
             if page.resources is not None:
                 result.append((page_num, 'Font' in page.resources.keys()))
 
-    if page_num == 0:
+    if page_num == None:
         raise ValueError(f"Not a valid document")
     return result
 
 
 def get_pdf_number_pages(file_path):
-    return len(PyPDF2.PdfReader(file_path).pages)
+    with pdfplumber.open(file_path) as pdf:
+        length = len(pdf.pages)
+    return length
 
 
 def pdf_to_jpeg(file_path, output_path, page_id):
@@ -42,18 +45,17 @@ def pdf_to_jpeg(file_path, output_path, page_id):
 
 def extract_text_from_searchable_pdf(file_path, page_id) -> str:
     """ Extract the text from a searchable pdf """
-    pdf_reader = PyPDF2.PdfReader(file_path)
-    for page_num, page in enumerate(pdf_reader.pages):
-        if page_num == page_id:
-            return page.extract_text()
-    return ""
-
+    with pdfplumber.open(file_path) as pdf:
+        text_to_return = pdf.pages[page_id].extract_text()
+    # remove wathermark (remove last line)
+    text_to_return = "\n".join(text_to_return.split("\n")[:-1])
+    return text_to_return
 
 
 def extract_text_from_jpeg(file_path, language=ocrspace.Language.French) -> str:
     """
-    Extract the text from a jpe or a pdf
-    The free version of ocrspace limits for pdf:
+    Extract the text from a jpeg or png
+    The free version of ocrspace limits for jpeg:
     - 25,000 request/month
     - 1mb/file -> raise error
     - 3 pages/pdf -> raise error
@@ -61,16 +63,13 @@ def extract_text_from_jpeg(file_path, language=ocrspace.Language.French) -> str:
     # check the size of the file
     if os.path.getsize(file_path) > 1000000:
         raise ValueError("The file is too big to be processed")
-    # check the number of pages
-    pdf_reader = PyPDF2.PdfReader(file_path)
-    if len(pdf_reader.pages) > 3:
-        raise ValueError("The file has too many pages to be processed")
 
     api = ocrspace.API(
         endpoint=st.secrets["ocrspace"]["endpoint"],
         api_key=st.secrets["ocrspace"]["api_key"],
         language=language)
     return api.ocr_file(file_path)
+
 
 
 def make_pdf_searchable(file_path, output_path, language=ocrspace.Language.French, to_disk=False):
@@ -86,9 +85,9 @@ def make_pdf_searchable(file_path, output_path, language=ocrspace.Language.Frenc
     if os.path.getsize(file_path) > 1000000:
         raise ValueError("The file is too big to be processed")
     # check the number of pages
-    pdf_reader = PyPDF2.PdfReader(file_path)
-    if len(pdf_reader.pages) > 3:
-        raise ValueError("The file has too many pages to be processed")
+    with pdfplumber.open(file_path) as pdf:
+        if len(pdf.pages) > 3:
+            raise ValueError("The file has too many pages to be processed")
     # Check extension
     if not file_path.endswith(".pdf"):
         raise ValueError("The file is not a pdf")
@@ -189,3 +188,4 @@ def convert_pdf_to_searchable(file_path, output_path):
             merger.append(PyPDF2.PdfReader(split_out))
     merger.write(output_path)
     shutil.rmtree("tmp_pdf", ignore_errors=True)
+    return searchable_pages

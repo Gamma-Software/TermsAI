@@ -19,6 +19,7 @@ from langchain.chains.question_answering import load_qa_chain
 from langchain.schema.vectorstore import VectorStoreRetriever
 from langchain.chains import RetrievalQA
 from langchain.llms import OpenAI
+from typing import List
 
 #from redis import Redis
 #from langchain.cache import RedisCache
@@ -289,14 +290,19 @@ def overall_summarize_chain_url_exec(terms_url: str):
 
 
 def summarize_chain_exec(terms: str):
-    llm = ChatOpenAI(temperature=0, model_name="gpt-3.5-turbo-16k")
+    llm = ChatOpenAI(temperature=0, model="gpt-3.5-turbo-16k")
     chain = load_summarize_chain(llm, chain_type="map_reduce")
     docs = [Document(page_content=terms)]
     return chain.run(docs)
 
+def summarize_chain_doc_exec(terms: List[Document]):
+    llm = ChatOpenAI(temperature=0, model="gpt-3.5-turbo-16k")
+    chain = load_summarize_chain(llm, chain_type="map_reduce")
+    return chain.run(terms)
+
 
 def summarize_chain_url_exec(terms_url: str):
-    llm = ChatOpenAI(temperature=0, model_name="gpt-3.5-turbo-16k")
+    llm = ChatOpenAI(temperature=0, model="gpt-3.5-turbo-16k")
 
     prompt_template = """The following is set of summaries:
 
