@@ -4,11 +4,11 @@ import streamlit as st
 
 def sidebar():
     with st.sidebar:
-        if "openai_api_key" not in st.secrets:
+        if not st.secrets.get("openai_api_key"):
             openai_api_key = st.text_input(
                 "OpenAI API Key", key="chatbot_api_key", type="password"
             )
-            if openai_api_key and "openai_api_key" not in st.session_state:
+            if openai_api_key and not st.session_state.get("openai_api_key"):
                 st.session_state["openai_api_key"] = openai_api_key
 
             st.markdown(
@@ -16,5 +16,5 @@ def sidebar():
             )
         else:
             st.session_state["openai_api_key"] = st.secrets["openai_api_key"]
-        if "openai_api_key" in st.session_state:
+        if st.session_state.get("openai_api_key"):
             os.environ["OPENAI_API_KEY"] = st.session_state["openai_api_key"]
