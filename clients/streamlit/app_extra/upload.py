@@ -1,7 +1,6 @@
-import os
-import streamlit as st
 from pathlib import Path
 import shutil
+import streamlit as st
 
 
 def upload(output_folder: Path):
@@ -39,10 +38,10 @@ def upload(output_folder: Path):
                 if extension in ["png", "jpg", "jpeg"]:
                     return {"pic": temp_file}
 
-                if extension in ["txt", "md"]:
-                    with open(temp_file, "r", encoding="utf-8") as f:
-                        text = f.read()
-                    return {"text": text}
+                # if extension in ["txt", "md"]:
+                with open(temp_file, "r", encoding="utf-8") as f:
+                    text = f.read()
+                return {"text": text}
 
             data = [treat_file(f, output_folder) for f in uploaded_file]
 
