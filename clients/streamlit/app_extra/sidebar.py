@@ -1,5 +1,6 @@
 import os
 import streamlit as st
+from app_extra import description
 
 
 def sidebar():
@@ -18,3 +19,10 @@ def sidebar():
             st.session_state["openai_api_key"] = st.secrets["openai_api_key"]
         if st.session_state.get("openai_api_key"):
             os.environ["OPENAI_API_KEY"] = st.session_state["openai_api_key"]
+
+        features = st.selectbox(
+            "Select a feature", ["Process PDF", "Display PDF metadata"]
+        )
+        # How to use
+        st.markdown(description.how_to_use)
+        return features

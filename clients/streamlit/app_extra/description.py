@@ -4,7 +4,7 @@ Ever wanted to read a contract but didn't have the time? This app will do it for
 
 This app will read your contract for you and answer your questions about it."""
 
-how_to_use = """## How to use it
+how_to_use = """## User guide
 
 The features are fully customizable. You can choose to activate one or multiple of them.
 

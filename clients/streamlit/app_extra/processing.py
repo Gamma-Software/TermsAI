@@ -1,3 +1,6 @@
+import shutil
+from pathlib import Path
+from typing import List, Tuple
 import streamlit as st
 
 from chains import (
@@ -8,10 +11,12 @@ from process_doc.process import extract_clean_doc, embed_doc
 from process_doc.utils import integrated_metadata_in_pdf
 
 
-def processing(questions, questionning, summarizing, add_metadata, data):
+def processing(
+    questions, questionning, summarizing, add_metadata, data, output_folder: Path
+) -> str:
     with st.status("Processing file(s)...", expanded=True) as status:
 
-        def process_file(_file, _id, length):
+        def process_file(_file, _id, length) -> str:
             # We process the pdf or photo to extract the text
             # And create a vector store to each paragraph
             st.write(f"Extract the text from the document... {id}/{length}")
@@ -44,7 +49,7 @@ def processing(questions, questionning, summarizing, add_metadata, data):
                 status.update(label="Summarized!", state="running", expanded=True)
                 return _summary
 
-            def answer_question():
+            def answer_question() -> List[Tuple[str, str]]:
                 result = []
                 for q_id, _question in enumerate(questions):
                     if _question == "":
@@ -91,6 +96,19 @@ def processing(questions, questionning, summarizing, add_metadata, data):
                 file_to_return = integrated_metadata_in_pdf(_file, metadata)
             return file_to_return
 
+        file_to_return = []
         for _id, _file in enumerate(data):
-            process_file(_file, _id + 1, len(data))
-        status.update(label="Question(s) answered!", state="complete", expanded=True)
+            file_to_return.append(process_file(_file, _id + 1, len(data)))
+
+        # Zip the files
+        zipped_files = shutil.make_archive(
+            str(output_folder / "zipped_file"), "zip", str(output_folder.absolute())
+        )
+        if Path(zipped_files).exists():
+            status.update(label="Zipping done!", state="running", expanded=True)
+        else:
+            status.update(label="Zipping failed", state="error", expanded=True)
+            return ""
+
+        status.update(label="Processing files done!", state="complete", expanded=True)
+        return zipped_files
