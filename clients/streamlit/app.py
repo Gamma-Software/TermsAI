@@ -1,7 +1,5 @@
 """Main Streamlit app file."""
 
-import dis
-from distutils.command import upload
 import os
 import streamlit as st
 from app_extra import sidebar, description, upload, processing

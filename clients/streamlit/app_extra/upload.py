@@ -11,7 +11,8 @@ def upload():
     if choice == "Upload a file":
         uploaded_file = st.file_uploader(
             "Upload contract PDFs",
-            ["pdf", "png", "jpg", "jpeg", "txt", "md"],
+            # ["pdf", "png", "jpg", "jpeg", "txt", "md"],
+            ["pdf"],
             accept_multiple_files=True,
             help="could be a picture or a pdf",
         )

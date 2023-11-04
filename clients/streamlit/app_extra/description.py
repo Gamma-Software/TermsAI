@@ -10,8 +10,6 @@ The features are fully customizable. You can choose to activate one or multiple 
 
 1. Upload a contract (or multiple ones)
     - PDF format (text or scanned)
-    - A screenshot of it
-    - An extracted text
 2. Ask any questions you have about the contract
     - You can ask one questions
     - You can ask multiple questions
