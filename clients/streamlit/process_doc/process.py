@@ -1,4 +1,6 @@
-from langchain.document_loaders import PyPDFLoader
+from typing import List
+import re
+
 from langchain.docstore.document import Document
 from langchain.schema.vectorstore import VectorStoreRetriever
 from langchain.embeddings import OpenAIEmbeddings
@@ -8,10 +10,8 @@ from process_doc.utils import (
     extract_text_from_searchable_pdf,
     convert_pdf_to_searchable,
     get_pdf_number_pages,
-    extract_text_from_jpeg)
-
-from typing import List
-import re
+    extract_text_from_jpeg,
+)
 
 
 def extract_clean_doc(data) -> List[Document]:
@@ -22,11 +22,15 @@ def extract_clean_doc(data) -> List[Document]:
     if not data or "text" not in data and "pdf" not in data and "pic" not in data:
         raise ValueError("No data provided")
 
-    paragraph_splitter = CharacterTextSplitter(separator="\n\n", keep_separator=True,
-                                               add_start_index=True, chunk_size=1000,
-                                               chunk_overlap=0)
+    paragraph_splitter = CharacterTextSplitter(
+        separator="\n\n",
+        keep_separator=True,
+        add_start_index=True,
+        chunk_size=1000,
+        chunk_overlap=0,
+    )
     extracted_docs: List[Document] = []
-    remove_extra_newlines = re.compile(r'\n{3,}', re.MULTILINE)
+    remove_extra_newlines = re.compile(r"\n{3,}", re.MULTILINE)
 
     if "pdf" in data:
         # OCR the pdf to make it searchable if necessary
@@ -34,21 +38,28 @@ def extract_clean_doc(data) -> List[Document]:
         total_pages = get_pdf_number_pages(data["pdf"])
         for page_id, is_searchable in searchable:
             content = extract_text_from_searchable_pdf(data["pdf"], page_id)
-            extracted_docs.append(Document(
-                page_content=remove_extra_newlines.sub("\n\n", content),
-                metadata={
-                    "type": "pdf",
-                    "page": page_id,
-                    "ocr": not is_searchable,
-                    "total_pages": total_pages
-                }))
+            extracted_docs.append(
+                Document(
+                    page_content=remove_extra_newlines.sub("\n\n", content),
+                    metadata={
+                        "type": "pdf",
+                        "page": page_id,
+                        "ocr": not is_searchable,
+                        "total_pages": total_pages,
+                    },
+                )
+            )
     if "pic" in data:
-        extracted_docs.append(Document(
-            page_content=remove_extra_newlines.sub(
-                "\n\n", extract_text_from_jpeg(data["pic"])),
-            metadata={
-                "type": "pic",
-            }))
+        extracted_docs.append(
+            Document(
+                page_content=remove_extra_newlines.sub(
+                    "\n\n", extract_text_from_jpeg(data["pic"])
+                ),
+                metadata={
+                    "type": "pic",
+                },
+            )
+        )
     if "text" in data:
         clean_text = remove_extra_newlines.sub("\n\n", data["text"])
         extracted_docs = [Document(page_content=clean_text, metadata={"type": "text"})]

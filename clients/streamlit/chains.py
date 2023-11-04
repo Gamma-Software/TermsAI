@@ -1,4 +1,6 @@
+"""Langchain chains"""
 import os
+from typing import List
 from langchain.chains import LLMChain
 from langchain.chat_models import ChatOpenAI
 from langchain.prompts import PromptTemplate
@@ -6,30 +8,28 @@ from langchain.pydantic_v1 import BaseModel, Field
 from langchain.output_parsers import PydanticOutputParser
 from langchain.chains import SequentialChain
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.chains import ReduceDocumentsChain, MapReduceDocumentsChain, StuffDocumentsChain
+from langchain.chains import (
+    ReduceDocumentsChain,
+    MapReduceDocumentsChain,
+    StuffDocumentsChain,
+)
 from langchain.docstore.document import Document
 from langchain.chains.summarize import load_summarize_chain
 from langchain.document_loaders import WebBaseLoader
-from langchain.document_loaders import AsyncChromiumLoader
-from langchain.document_loaders import SeleniumURLLoader
-from langchain.document_transformers import BeautifulSoupTransformer
 from langchain.document_loaders import PlaywrightURLLoader
-from langchain.chains.qa_with_sources import load_qa_with_sources_chain
 from langchain.chains.question_answering import load_qa_chain
 from langchain.schema.vectorstore import VectorStoreRetriever
-from langchain.chains import RetrievalQA
-from langchain.llms import OpenAI
-from typing import List
+from langchain.llms.openai import OpenAI
 
-#from redis import Redis
-#from langchain.cache import RedisCache
+# from redis import Redis
+# from langchain.cache import RedisCache
 import langchain
 import streamlit as st
 
-os.environ['OPENAI_API_KEY'] = st.secrets["openai_api_key"]
+os.environ["OPENAI_API_KEY"] = st.secrets["openai_api_key"]
 langchain.debug = st.secrets["langchain"]["debug"]
 langchain.debug = True
-#langchain.llm_cache = RedisCache(redis_=Redis(host=st.secrets["redis"]["host"],
+# langchain.llm_cache = RedisCache(redis_=Redis(host=st.secrets["redis"]["host"],
 #                                              port=st.secrets["redis"]["port"], db=0))
 
 
@@ -44,7 +44,7 @@ def question_to_words_chain(llm):
     {question}
     </question>
     words:"""
-    format = """
+    _format = """
     ```
     words:transformed question
     ...
@@ -56,8 +56,11 @@ def question_to_words_chain(llm):
     </question>
     words:Intellectual Property Rights
     ```"""
-    prompt = PromptTemplate(input_variables=["question"],
-                            partial_variables={"format_instructions": format}, template=template)
+    prompt = PromptTemplate(
+        input_variables=["question"],
+        partial_variables={"format_instructions": _format},
+        template=template,
+    )
     return LLMChain(llm=llm, prompt=prompt, output_key="words", verbose=True)
 
 
@@ -73,7 +76,7 @@ def words_to_emoji(llm):
     {words}
     </words>
     emoji:"""
-    format = """
+    _format = """
     ```
     emoji:emoji best describing the words
     ...
@@ -86,8 +89,11 @@ def words_to_emoji(llm):
     emoji:👨‍💼
     ```"""
 
-    prompt = PromptTemplate(input_variables=["words"],
-                            partial_variables={"format_instructions": format}, template=template)
+    prompt = PromptTemplate(
+        input_variables=["words"],
+        partial_variables={"format_instructions": _format},
+        template=template,
+    )
     return LLMChain(llm=llm, prompt=prompt, output_key="emoji", verbose=True)
 
 
@@ -115,31 +121,34 @@ def answer_question_chain(llm):
     # Set up a parser + inject instructions into the prompt template.
     parser = PydanticOutputParser(pydantic_object=TermsAnswer)
 
-    prompt = PromptTemplate(input_variables=["terms", "question"],
-                            partial_variables={
-                                "format_instructions": parser.get_format_instructions()},
-                            template=template)
+    prompt = PromptTemplate(
+        input_variables=["terms", "question"],
+        partial_variables={"format_instructions": parser.get_format_instructions()},
+        template=template,
+    )
     return LLMChain(llm=llm, prompt=prompt, output_key="output", verbose=True)
 
 
 def overall_chain_exec(questions: list, terms: str):
-    llm = ChatOpenAI(temperature=0,
-                     model_name="gpt-3.5-turbo-16k")
-    llm2 = ChatOpenAI(temperature=0,
-                      model_name="gpt-3.5-turbo")
+    llm = ChatOpenAI(temperature=0, model="gpt-3.5-turbo-16k")
+    llm2 = ChatOpenAI(temperature=0, model="gpt-3.5-turbo")
 
     answers = {}
 
     seq_chain = SequentialChain(
-        chains=[question_to_words_chain(llm2), words_to_emoji(llm2), answer_question_chain(llm)],
+        chains=[
+            question_to_words_chain(llm2),
+            words_to_emoji(llm2),
+            answer_question_chain(llm),
+        ],
         input_variables=["terms", "question"],
         output_variables=["words", "emoji", "output"],
-        verbose=True)
+        verbose=True,
+    )
     for question in questions:
-        term_answer = seq_chain({
-            "terms": terms,
-            "question": question
-            }, return_only_outputs=True)
+        term_answer = seq_chain(
+            {"terms": terms, "question": question}, return_only_outputs=True
+        )
 
         # Add the answer to the dictionary
         parser = PydanticOutputParser(pydantic_object=TermsAnswer)
@@ -153,26 +162,34 @@ def overall_chain_exec(questions: list, terms: str):
 
 
 def overall_chain_url_exec(questions: list, terms_url: str):
-    llm = ChatOpenAI(temperature=0,
-                     model_name="gpt-3.5-turbo-16k")
-    llm2 = ChatOpenAI(temperature=0,
-                      model_name="gpt-3.5-turbo")
+    llm = ChatOpenAI(temperature=0, model="gpt-3.5-turbo-16k")
+    llm2 = ChatOpenAI(temperature=0, model="gpt-3.5-turbo")
 
     answers = {}
 
     seq_chain = SequentialChain(
-        chains=[question_to_words_chain(llm2), words_to_emoji(llm2), answer_question_chain(llm)],
+        chains=[
+            question_to_words_chain(llm2),
+            words_to_emoji(llm2),
+            answer_question_chain(llm),
+        ],
         input_variables=["terms", "question"],
         output_variables=["words", "emoji", "output"],
-        verbose=True)
-    loader = PlaywrightURLLoader(urls=[terms_url], remove_selectors=["header", "footer"])
+        verbose=True,
+    )
+    loader = PlaywrightURLLoader(
+        urls=[terms_url], remove_selectors=["header", "footer"]
+    )
     docs = loader.load()
 
     for question in questions:
-        term_answer = seq_chain({
-            "terms": " ".join([doc.page_content for doc in docs]),
-            "question": question
-            }, return_only_outputs=True)
+        term_answer = seq_chain(
+            {
+                "terms": " ".join([doc.page_content for doc in docs]),
+                "question": question,
+            },
+            return_only_outputs=True,
+        )
 
         # Add the answer to the dictionary
         parser = PydanticOutputParser(pydantic_object=TermsAnswer)
@@ -208,12 +225,12 @@ def map_chain(llm):
 
 
 def overall_summarize_chain_exec(terms: str):
-    llm = ChatOpenAI(temperature=0, model_name="gpt-3.5-turbo-16k")
+    llm = ChatOpenAI(temperature=0, model="gpt-3.5-turbo-16k")
 
     # Takes a list of documents, combines them into a single string, and passes this to an LLMChain
     combine_documents_chain = StuffDocumentsChain(
         llm_chain=map_reduce_summarization_chain(llm),
-        document_variable_name="doc_summaries"
+        document_variable_name="doc_summaries",
     )
 
     # Combines and iteravely reduces the mapped documents
@@ -248,12 +265,12 @@ def overall_summarize_chain_exec(terms: str):
 
 
 def overall_summarize_chain_url_exec(terms_url: str):
-    llm = ChatOpenAI(temperature=0, model_name="gpt-3.5-turbo-16k")
+    llm = ChatOpenAI(temperature=0, model="gpt-3.5-turbo-16k")
 
     # Takes a list of documents, combines them into a single string, and passes this to an LLMChain
     combine_documents_chain = StuffDocumentsChain(
         llm_chain=map_reduce_summarization_chain(llm),
-        document_variable_name="doc_summaries"
+        document_variable_name="doc_summaries",
     )
 
     # Combines and iteravely reduces the mapped documents
@@ -288,11 +305,13 @@ def overall_summarize_chain_url_exec(terms_url: str):
 
     return map_reduce_chain.run(split_docs)
 
+
 def summarize_chain_exec(terms: str):
     llm = ChatOpenAI(temperature=0, model="gpt-3.5-turbo")
     chain = load_summarize_chain(llm, chain_type="map_reduce")
     docs = [Document(page_content=terms)]
     return chain.run(docs)
+
 
 def summarize_chain_doc_exec(terms: List[Document]):
     llm = ChatOpenAI(temperature=0, model="gpt-3.5-turbo")
@@ -322,10 +341,15 @@ def summarize_chain_url_exec(terms_url: str):
     CONCISE SUMMARY:"""
     map_prompt = PromptTemplate(template=prompt_template, input_variables=["text"])
 
-    chain = load_summarize_chain(llm, chain_type="map_reduce",
-                                 map_prompt=map_prompt,
-                                 combine_prompt=combine_prompt)
-    loader = PlaywrightURLLoader(urls=[terms_url], remove_selectors=["header", "footer"])
+    chain = load_summarize_chain(
+        llm,
+        chain_type="map_reduce",
+        map_prompt=map_prompt,
+        combine_prompt=combine_prompt,
+    )
+    loader = PlaywrightURLLoader(
+        urls=[terms_url], remove_selectors=["header", "footer"]
+    )
     print("load")
     docs = loader.load()
     print("loaded")
@@ -341,14 +365,17 @@ def simple_qa_chain(query, docsearch: VectorStoreRetriever):
 
     Question: {question}
     Answer and give an excerpt to validate the answer in {language}:"""
-    PROMPT = PromptTemplate(
+    prompt = PromptTemplate(
         template=prompt_template, input_variables=["context", "question"]
     )
 
     # Get the 3 most relevant documents
     docs = docsearch.get_relevant_documents(query)[:3]
-    chain = load_qa_chain(OpenAI(temperature=0), chain_type="stuff", prompt=PROMPT)
-    return docs, chain({"input_documents": docs, "question": query, "language": "English"}, return_only_outputs=True)
+    chain = load_qa_chain(OpenAI(temperature=0), chain_type="stuff", prompt=prompt)
+    return docs, chain(
+        {"input_documents": docs, "question": query, "language": "English"},
+        return_only_outputs=True,
+    )
 
 
 def simple_qa_chain_long(query, docs):
@@ -363,6 +390,9 @@ def simple_qa_chain_long(query, docs):
     )
 
     # Get the 3 most relevant documents
-    llm = ChatOpenAI(temperature=0, model_name="gpt-3.5-turbo-16k")
+    llm = ChatOpenAI(temperature=0, model="gpt-3.5-turbo-16k")
     chain = load_qa_chain(llm, chain_type="stuff", prompt=PROMPT)
-    return docs, chain({"input_documents": docs, "question": query, "language": "English"}, return_only_outputs=True)
+    return docs, chain(
+        {"input_documents": docs, "question": query, "language": "English"},
+        return_only_outputs=True,
+    )

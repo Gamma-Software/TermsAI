@@ -1,32 +1,34 @@
+from datetime import datetime
 import os
-from os import mkdir, remove
+from os import mkdir
+import shutil
+from typing import List
 from pdfminer.pdfpage import PDFPage
 from pdf2image.pdf2image import convert_from_path
 import process_doc.ocrspace_api as ocrspace
 import streamlit as st
-from typing import List
 import PyPDF2
-import shutil
 import pdfplumber
 
 
-#endpoint=st.secrets["ocrspace"]["endpoint"],
-#api_key=st.secrets["ocrspace"]["api_key"],
+# endpoint=st.secrets["ocrspace"]["endpoint"],
+# api_key=st.secrets["ocrspace"]["api_key"],
 endpoint = "https://api.ocr.space/parse/image"
 api_key = "K81678992188957"
 
+
 def get_pdf_searchable_pages(file_path):
-    """ Parse the pdf and result the pages that are searchable and the ones that are not
+    """Parse the pdf and result the pages that are searchable and the ones that are not
     If false -> the page is not searchable"""
     result = []
     page_num = None
-    with open(file_path, 'rb') as infile:
+    with open(file_path, "rb") as infile:
         for page_num, page in enumerate(PDFPage.get_pages(infile)):
             if page.resources is not None:
-                result.append((page_num, 'Font' in page.resources.keys()))
+                result.append((page_num, "Font" in page.resources.keys()))
 
-    if page_num == None:
-        raise ValueError(f"Not a valid document")
+    if page_num is None:
+        raise ValueError("Not a valid document")
     return result
 
 
@@ -37,14 +39,16 @@ def get_pdf_number_pages(file_path):
 
 
 def pdf_to_jpeg(file_path, output_path, page_id):
-    """ Parse a specific page of a pdf that cannot be read into a jpeg """
-    pages = convert_from_path(file_path, 200, thread_count=4, first_page=page_id, last_page=page_id)
+    """Parse a specific page of a pdf that cannot be read into a jpeg"""
+    pages = convert_from_path(
+        file_path, 200, thread_count=4, first_page=page_id, last_page=page_id
+    )
     pages[0].save(output_path, "JPEG")
     return output_path
 
 
 def extract_text_from_searchable_pdf(file_path, page_id) -> str:
-    """ Extract the text from a searchable pdf """
+    """Extract the text from a searchable pdf"""
     with pdfplumber.open(file_path) as pdf:
         text_to_return = pdf.pages[page_id].extract_text()
     # remove wathermark (remove last line)
@@ -67,12 +71,14 @@ def extract_text_from_jpeg(file_path, language=ocrspace.Language.French) -> str:
     api = ocrspace.API(
         endpoint=st.secrets["ocrspace"]["endpoint"],
         api_key=st.secrets["ocrspace"]["api_key"],
-        language=language)
+        language=language,
+    )
     return api.ocr_file(file_path)
 
 
-
-def make_pdf_searchable(file_path, output_path, language=ocrspace.Language.French, to_disk=False):
+def make_pdf_searchable(
+    file_path, output_path, language=ocrspace.Language.French, to_disk=False
+):
     """
     Extract the text from a jpe or a pdf
     The free version of ocrspace limits for pdf:
@@ -92,10 +98,7 @@ def make_pdf_searchable(file_path, output_path, language=ocrspace.Language.Frenc
     if not file_path.endswith(".pdf"):
         raise ValueError("The file is not a pdf")
 
-    api = ocrspace.API(
-        endpoint,
-        api_key,
-        language=language)
+    api = ocrspace.API(endpoint, api_key, language=language)
     stream = api.ocr_file_to_pdf(file_path)
     if to_disk:
         with open(output_path, "wb") as f:
@@ -103,12 +106,14 @@ def make_pdf_searchable(file_path, output_path, language=ocrspace.Language.Frenc
     return stream
 
 
-def split_pdf(input_pdf_path, output_pdf_path, start_page, end_page) -> PyPDF2.PdfWriter:
+def split_pdf(
+    input_pdf_path, output_pdf_path, start_page, end_page
+) -> PyPDF2.PdfWriter:
     if start_page == end_page:
         raise ValueError("The start page and end page cannot be the same")
     pdf_writer = PyPDF2.PdfWriter()
     try:
-        pdf_file = open(input_pdf_path, 'rb')
+        pdf_file = open(input_pdf_path, "rb")
         pdf_reader = PyPDF2.PdfReader(pdf_file)
 
         if start_page < 0:
@@ -121,7 +126,7 @@ def split_pdf(input_pdf_path, output_pdf_path, start_page, end_page) -> PyPDF2.P
             page = pdf_reader.pages[page_num]
             pdf_writer.add_page(page)
 
-        with open(output_pdf_path, 'wb') as output_pdf_file:
+        with open(output_pdf_path, "wb") as output_pdf_file:
             pdf_writer.write(output_pdf_file)
 
         pdf_file.close()
@@ -134,17 +139,19 @@ def split_pdf(input_pdf_path, output_pdf_path, start_page, end_page) -> PyPDF2.P
 def split_pdf_every(input_pdf, output_pdf_suffix, every) -> List[str]:
     output_list = []
     try:
-        pdf_file = open(input_pdf, 'rb')
+        pdf_file = open(input_pdf, "rb")
         pdf_reader = PyPDF2.PdfReader(pdf_file)
         input_dir = os.path.dirname(input_pdf)
 
-        for page_num in range(len(pdf_reader.pages)):
+        for page_num, _ in enumerate(pdf_reader.pages):
             if page_num % every == 0:
                 pdf_writer = PyPDF2.PdfWriter()
                 page = pdf_reader.pages[page_num]
                 pdf_writer.add_page(page)
-                output_list.append(os.path.join(input_dir, f"{output_pdf_suffix}{page_num}.pdf"))
-                with open(output_list[-1], 'wb') as output_pdf_file:
+                output_list.append(
+                    os.path.join(input_dir, f"{output_pdf_suffix}{page_num}.pdf")
+                )
+                with open(output_list[-1], "wb") as output_pdf_file:
                     pdf_writer.write(output_pdf_file)
                 pdf_writer.close()
         pdf_file.close()
@@ -155,7 +162,7 @@ def split_pdf_every(input_pdf, output_pdf_suffix, every) -> List[str]:
 
 
 def merge_pdf(input_pdfs, output_pdf) -> str:
-    """ Merge multiple pdfs into one pdf """
+    """Merge multiple pdfs into one pdf"""
     merger = PyPDF2.PdfMerger()
     for pdf in input_pdfs:
         merger.append(pdf)
@@ -177,7 +184,7 @@ def convert_pdf_to_searchable(file_path, output_path):
     for page, is_searchable in searchable_pages:
         print(f"Processing page {page}")
         split_out = f"tmp_pdf/temp{page}.pdf"
-        split_pdf(file_path, split_out, page, page+1)
+        split_pdf(file_path, split_out, page, page + 1)
         if not is_searchable:
             print(f"    Page {page} not searchable make OCR")
             output_ocr = f"tmp_pdf/temp{page}_ocr.pdf"
@@ -190,8 +197,9 @@ def convert_pdf_to_searchable(file_path, output_path):
     shutil.rmtree("tmp_pdf", ignore_errors=True)
     return searchable_pages
 
+
 def integrated_metadata_in_pdf(file_path, data):
-    """ Add metadata to a pdf """
+    """Add metadata to a pdf"""
     pdf_writer = PyPDF2.PdfFileWriter()
     pdf_reader = PyPDF2.PdfFileReader(file_path)
     for page_num in range(pdf_reader.numPages):
@@ -203,6 +211,6 @@ def integrated_metadata_in_pdf(file_path, data):
     pdf_datestamp = now.strftime("D:%Y%m%d%H%M%S-8'00'")
     data["ModDate"] = pdf_datestamp
     pdf_writer.addMetadata(data)
-    with open(file_path, 'wb') as output_pdf_file:
+    with open(file_path, "wb") as output_pdf_file:
         pdf_writer.write(output_pdf_file)
     return file_path
