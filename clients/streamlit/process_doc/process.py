@@ -69,7 +69,7 @@ def extract_clean_doc(data) -> List[Document]:
     return extracted_docs
 
 
-def embedd_doc(docs: List[Document]) -> VectorStoreRetriever:
+def embed_doc(docs: List[Document]) -> VectorStoreRetriever:
     embeddings = OpenAIEmbeddings()
     texts = [doc.page_content for doc in docs]
     metadatas = [doc.metadata for doc in docs]

@@ -27,8 +27,6 @@ import langchain
 import streamlit as st
 
 os.environ["OPENAI_API_KEY"] = st.secrets["openai_api_key"]
-langchain.debug = st.secrets["langchain"]["debug"]
-langchain.debug = True
 # langchain.llm_cache = RedisCache(redis_=Redis(host=st.secrets["redis"]["host"],
 #                                              port=st.secrets["redis"]["port"], db=0))
 
