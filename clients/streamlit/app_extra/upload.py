@@ -1,9 +1,10 @@
-from pathlib import Path
 import shutil
+from pathlib import Path
+from typing import Dict, List
 import streamlit as st
 
 
-def upload(output_folder: Path):
+def upload(output_folder: Path) -> List[Dict[str, str]]:
     choice = st.radio(
         "How do you want to retrieve the Terms of the contract ?",
         ("Upload a file", "Enter the raw text"),
@@ -22,7 +23,8 @@ def upload(output_folder: Path):
         if uploaded_file is not None:
             if output_folder.exists():
                 shutil.rmtree(output_folder)
-            output_folder.mkdir(parents=True)
+            if not output_folder.exists():
+                output_folder.mkdir(parents=True)
 
             def treat_file(file, output_folder: Path):
                 # Write it into a temp file

@@ -7,7 +7,8 @@
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
-            "justMyCode": true
+            "justMyCode": true,
+            "cwd": "${workspaceFolder}/clients/streamlit",
         },
         {
             "name": "Python:Streamlit",
@@ -19,7 +20,8 @@
                 "${file}",
                 "--server.port",
                 "8502"
-            ]
+            ],
+            "cwd": "${workspaceFolder}/clients/streamlit",
         }
     ]
 }

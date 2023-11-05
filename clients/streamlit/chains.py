@@ -13,6 +13,7 @@ from langchain.chains import (
     MapReduceDocumentsChain,
     StuffDocumentsChain,
 )
+from langchain.callbacks import get_openai_callback
 from langchain.docstore.document import Document
 from langchain.chains.summarize import load_summarize_chain
 from langchain.document_loaders import WebBaseLoader
@@ -23,7 +24,6 @@ from langchain.llms.openai import OpenAI
 
 # from redis import Redis
 # from langchain.cache import RedisCache
-import langchain
 import streamlit as st
 
 os.environ["OPENAI_API_KEY"] = st.secrets["openai_api_key"]
@@ -312,9 +312,11 @@ def summarize_chain_exec(terms: str):
 
 
 def summarize_chain_doc_exec(terms: List[Document]):
-    llm = ChatOpenAI(temperature=0, model="gpt-3.5-turbo")
+    llm = OpenAI(temperature=0, model="gpt-3.5-turbo-instruct")
     chain = load_summarize_chain(llm, chain_type="map_reduce")
-    return chain.run(terms)
+    with get_openai_callback() as cb:
+        result = chain.run(terms)
+    return cb, result
 
 
 def summarize_chain_url_exec(terms_url: str):

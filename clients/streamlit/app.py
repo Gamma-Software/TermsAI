@@ -36,12 +36,13 @@ else:
     # 2. Ask any questions you have about the contract
     st.write("Choose the features to activate")
     c1, c2, c3 = st.columns(3)
-    features_1 = c1.checkbox("Question Answering", value=True)
-    features_2 = c2.checkbox("Summary", value=True)
+    features_1 = c1.checkbox("Question Answering", value=True, key="qa")
+    features_2 = c2.checkbox("Summary", value=True, key="summary")
     features_3 = c3.checkbox(
         "Include Metadata",
         value=(features_1 or features_2),
         disabled=(not features_1 and not features_2),
+        key="metadata",
     )
     feature_selection_info = st.empty()
 
@@ -51,6 +52,7 @@ else:
             "Enter your questions ",
             help="Enter your questions here to get answers from your contract",
             placeholder="Does the website collect personal information from your users?\nDoes the website use any digital analytics software for tracking purposes?",
+            key="questions",
         )
         if QUESTIONS:
             QUESTIONS = QUESTIONS.split("\n")
@@ -59,26 +61,38 @@ else:
 
     # 3. Wait for the app
     zipped_processed_file = ""
-    if st.button("Execute"):
-        if not (raw_data and (features_1 and QUESTIONS)):
-            if not raw_data:
-                file_upload_info.info("Please upload a contract to continue")
-            if not features_1 and not features_2:
-                feature_selection_info.info(
-                    "Please activate at least one feature to continue"
-                )
-            if QUESTIONS == "":
-                question_info.info("Please enter at least one question to continue")
-        else:
-            zipped_processed_file = processing.processing(
-                QUESTIONS, features_1, features_2, features_3, raw_data, output_folder
+    execute_bt = st.button("Execute")
+    if execute_bt:
+        error = False
+        if not raw_data:
+            file_upload_info.info("Please upload a contract to continue")
+            error = True
+        if not features_1 and not features_2:
+            feature_selection_info.info(
+                "Please activate at least one feature to continue"
             )
+            error = True
+        if features_1 and QUESTIONS == "":
+            question_info.info("Please enter at least one question to continue")
+            error = True
+        if error:
+            st.stop()
+
+        zipped_processed_file = processing.processing(
+            QUESTIONS,
+            features_1,
+            features_2,
+            features_3,
+            raw_data,
+            output_folder,
+        )
 
     # 4. You can now download the contract with included metadata of the
     # questions and answers and the summary
     if zipped_processed_file:
         st.download_button(
             "Download the processed contract",
-            zipped_processed_file,
+            data=zipped_processed_file.read_bytes(),
+            file_name=zipped_processed_file.name,
             help="Download the processed contract with the metadata",
         )

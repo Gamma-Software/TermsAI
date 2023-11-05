@@ -1,8 +1,8 @@
 import shutil
 from pathlib import Path
-from typing import List, Tuple
+from typing import List, Tuple, Dict
 import streamlit as st
-
+import json
 from chains import (
     simple_qa_chain,
     summarize_chain_doc_exec,
@@ -12,21 +12,22 @@ from process_doc.utils import integrated_metadata_in_pdf
 
 
 def processing(
-    questions, questionning, summarizing, add_metadata, data, output_folder: Path
-) -> str:
+    questions,
+    questionning,
+    summarizing,
+    add_metadata,
+    data: List[Dict[str, str]],
+    output_folder: Path,
+) -> Path:
     with st.status("Processing file(s)...", expanded=True) as status:
 
         def process_file(_file, _id, length) -> str:
             # We process the pdf or photo to extract the text
             # And create a vector store to each paragraph
-            st.write(f"Extract the text from the document... {id}/{length}")
             status.update(label="Extract the text from the document...", expanded=True)
             st.session_state["extracted_data"] = extract_clean_doc(_file)
 
-            st.write("Embed the text in vector store...")
-            status.update(
-                label=f"Embed the text in vector store... {_id}/{length}", expanded=True
-            )
+            status.update(label=f"Embed the text in vector store...", expanded=True)
             st.session_state["vector_store"] = embed_doc(
                 st.session_state["extracted_data"]
             )
@@ -42,10 +43,12 @@ def processing(
                 )
 
             def summarize():
-                st.write("Summarizing...")
                 status.update(label="Summarizing...", state="running", expanded=True)
-                _summary = summarize_chain_doc_exec(st.session_state["extracted_data"])
-                st.write("Summarized!")
+                _, _summary = summarize_chain_doc_exec(
+                    st.session_state["extracted_data"]
+                )
+                st.subheader("Summary")
+                st.write(_summary)
                 status.update(label="Summarized!", state="running", expanded=True)
                 return _summary
 
@@ -54,7 +57,6 @@ def processing(
                 for q_id, _question in enumerate(questions):
                     if _question == "":
                         continue
-                    st.write(f"Answer question... {q_id}/{len(questions)}")
                     status.update(
                         label=f"Answer question... {q_id}/{len(questions)}",
                         expanded=True,
@@ -70,12 +72,9 @@ def processing(
                     #    st.markdown(">" + v["output"]["answer"] + " " + v["output"]["excerpts"])
                     st.write(_question)
                     st.caption(_answers["output_text"])
-                    st.divider()
                     # question_container.write(docs_2)
                     # question_container.write(answers_2)
                     result.append((_question, _answers["output_text"]))
-
-                    st.write(f"Question answered... {q_id}/{len(questions)}")
                     status.update(
                         label=f"Question answered... {q_id}/{len(questions)}",
                         expanded=True,
@@ -84,12 +83,13 @@ def processing(
 
             metadata = {}
             if summarizing:
-                metadata["summary"] = summarize()
+                metadata["/Subject"] = summarize()
 
             if questionning:
-                metadata["questions"] = [
-                    {"question": q, "answer": a} for q, a in answer_question()
-                ]
+                d = []
+                for id, q in enumerate(answer_question()):
+                    d.append({f"question{id}": q[0], f"answer{id}": q[1]})
+                metadata["/Questions"] = json.dumps(d)
 
             file_to_return = ""
             if add_metadata:
@@ -98,17 +98,24 @@ def processing(
 
         file_to_return = []
         for _id, _file in enumerate(data):
+            name = _file["pdf"].name
+            st.write(f"Processing file {_id + 1}/{len(data)}: {name}")
             file_to_return.append(process_file(_file, _id + 1, len(data)))
+            if _id + 1 != len(data):
+                st.divider()
+            st.toast(f"File {_id + 1}/{len(data)} processed !")
 
         # Zip the files
         zipped_files = shutil.make_archive(
-            str(output_folder / "zipped_file"), "zip", str(output_folder.absolute())
+            str(output_folder.parent / "zipped_file"),
+            "zip",
+            str(output_folder.absolute()),
         )
         if Path(zipped_files).exists():
             status.update(label="Zipping done!", state="running", expanded=True)
         else:
             status.update(label="Zipping failed", state="error", expanded=True)
-            return ""
+            return None
 
         status.update(label="Processing files done!", state="complete", expanded=True)
-        return zipped_files
+        return Path(zipped_files)

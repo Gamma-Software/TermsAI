@@ -9,8 +9,11 @@ def display_pdf_metadata(pdf_file):
 
     for info in doc.info:
         for k, v in info.items():
-            if v.decode():
-                st.write(f"{k}: {v.decode()}")
+            try:
+                if v.decode():
+                    st.write(f"{k}: {v.decode()}")
+            except Exception:
+                st.write(f"{k}: {v}")
 
 
 def display_metadata():

@@ -200,17 +200,19 @@ def convert_pdf_to_searchable(file_path, output_path):
 
 def integrated_metadata_in_pdf(file_path, data):
     """Add metadata to a pdf"""
-    pdf_writer = PyPDF2.PdfFileWriter()
-    pdf_reader = PyPDF2.PdfFileReader(file_path)
-    for page_num in range(pdf_reader.numPages):
-        page = pdf_reader.getPage(page_num)
-        page.mergePage(pdf_reader.getPage(page_num))
-        pdf_writer.addPage(page)
+    pdf_writer = PyPDF2.PdfWriter()
+    pdf_reader = PyPDF2.PdfReader(file_path["pdf"])
+    for _, page in enumerate(pdf_reader.pages):
+        page.merge_page(page)
+        pdf_writer.add_page(page)
 
     now = datetime.now()
     pdf_datestamp = now.strftime("D:%Y%m%d%H%M%S-8'00'")
-    data["ModDate"] = pdf_datestamp
-    pdf_writer.addMetadata(data)
-    with open(file_path, "wb") as output_pdf_file:
+    data["/Title"] = "Contract"
+    data["/ModDate"] = pdf_datestamp
+    data["/Producer"] = "TermsAI"
+    data["/Creator"] = "TermsAI"
+    pdf_writer.add_metadata(data)
+    with open(file_path["pdf"], "wb") as output_pdf_file:
         pdf_writer.write(output_pdf_file)
-    return file_path
+    return file_path["pdf"]
