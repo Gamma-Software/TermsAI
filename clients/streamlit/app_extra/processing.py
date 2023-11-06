@@ -87,8 +87,8 @@ def processing(
 
             if questionning:
                 d = []
-                for id, q in enumerate(answer_question()):
-                    d.append({f"question{id}": q[0], f"answer{id}": q[1]})
+                for _id, q in enumerate(answer_question()):
+                    d.append({q[0]: q[1]})
                 metadata["/Questions"] = json.dumps(d)
 
             file_to_return = ""

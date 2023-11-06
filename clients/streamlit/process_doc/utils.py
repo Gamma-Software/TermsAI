@@ -9,7 +9,7 @@ import process_doc.ocrspace_api as ocrspace
 import streamlit as st
 import PyPDF2
 import pdfplumber
-
+import json
 
 # endpoint=st.secrets["ocrspace"]["endpoint"],
 # api_key=st.secrets["ocrspace"]["api_key"],
@@ -206,12 +206,19 @@ def integrated_metadata_in_pdf(file_path, data):
         page.merge_page(page)
         pdf_writer.add_page(page)
 
+    # Handle use case, when the user has already added questions metadata
+    current_meta = pdf_reader.metadata
+    if "/Questions" in current_meta:
+        current_questions = json.loads(current_meta["/Questions"])
+        for k, v in json.loads(data["/Questions"]).items():
+            current_questions[k] = v
+        data["/Questions"] = json.dumps(current_questions)
+
     now = datetime.now()
     pdf_datestamp = now.strftime("D:%Y%m%d%H%M%S-8'00'")
     data["/Title"] = "Contract"
     data["/ModDate"] = pdf_datestamp
     data["/Producer"] = "TermsAI"
-    data["/Creator"] = "TermsAI"
     pdf_writer.add_metadata(data)
     with open(file_path["pdf"], "wb") as output_pdf_file:
         pdf_writer.write(output_pdf_file)
