@@ -9,6 +9,7 @@ from chains import (
 )
 from process_doc.process import extract_clean_doc, embed_doc
 from process_doc.utils import integrated_metadata_in_pdf
+from app_extra.display_metadata import display_pdf_metadata
 
 
 def processing(
@@ -24,10 +25,10 @@ def processing(
         def process_file(_file, _id, length) -> str:
             # We process the pdf or photo to extract the text
             # And create a vector store to each paragraph
-            status.update(label="Extract the text from the document...", expanded=True)
+            st.write(f"Extract the text from {_file}...")
             st.session_state["extracted_data"] = extract_clean_doc(_file)
 
-            status.update(label=f"Embed the text in vector store...", expanded=True)
+            st.write(f"Embed the text of {_file} in vector store...")
             st.session_state["vector_store"] = embed_doc(
                 st.session_state["extracted_data"]
             )
@@ -38,18 +39,13 @@ def processing(
             ):
                 st.stop()
                 st.write("Processing of files failed !")
-                status.update(
-                    label="Processing of files failed !", state="error", expanded=True
-                )
 
             def summarize():
-                status.update(label="Summarizing...", state="running", expanded=True)
+                st.write(f"Summarizing...")
                 _, _summary = summarize_chain_doc_exec(
                     st.session_state["extracted_data"]
                 )
-                st.subheader("Summary")
-                st.write(_summary)
-                status.update(label="Summarized!", state="running", expanded=True)
+                st.write("Summarized!")
                 return _summary
 
             def answer_question() -> List[Tuple[str, str]]:
@@ -57,10 +53,7 @@ def processing(
                 for q_id, _question in enumerate(questions):
                     if _question == "":
                         continue
-                    status.update(
-                        label=f"Answer question... {q_id}/{len(questions)}",
-                        expanded=True,
-                    )
+                    st.write(f"Answer question... {q_id}/{len(questions)}")
                     _, _answers = simple_qa_chain(
                         _question, st.session_state["vector_store"]
                     )
@@ -70,15 +63,10 @@ def processing(
                     # for k, v in answers.items():
                     #    question_container.markdown(v["emoji"] + v["words"])
                     #    st.markdown(">" + v["output"]["answer"] + " " + v["output"]["excerpts"])
-                    st.write(_question)
-                    st.caption(_answers["output_text"])
                     # question_container.write(docs_2)
                     # question_container.write(answers_2)
                     result.append((_question, _answers["output_text"]))
-                    status.update(
-                        label=f"Question answered... {q_id}/{len(questions)}",
-                        expanded=True,
-                    )
+                    st.write(f"Question answered... {q_id}/{len(questions)}")
                 return result
 
             metadata = {}
@@ -112,10 +100,19 @@ def processing(
             str(output_folder.absolute()),
         )
         if Path(zipped_files).exists():
-            status.update(label="Zipping done!", state="running", expanded=True)
+            st.write("Zipping done!")
         else:
-            status.update(label="Zipping failed", state="error", expanded=True)
+            st.write(label="Zipping failed")
             return None
 
-        status.update(label="Processing files done!", state="complete", expanded=True)
+        st.write("Processing files done!")
         return Path(zipped_files)
+
+
+def display_result(output_dir: Path):
+    with st.expander("See results"):
+        for file in output_dir.iterdir():
+            if file.suffix == ".pdf":
+                st.subheader(file.name)
+                display_pdf_metadata(file)
+            st.divider()
