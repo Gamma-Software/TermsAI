@@ -208,9 +208,9 @@ def integrated_metadata_in_pdf(file_path, data):
 
     # Handle use case, when the user has already added questions metadata
     current_meta = pdf_reader.metadata
-    if "/Questions" in current_meta:
-        current_questions = json.loads(current_meta["/Questions"])
-        for k, v in json.loads(data["/Questions"]).items():
+    if current_meta and "/Questions" in current_meta:
+        current_questions = json.loads(str(current_meta["/Questions"]))
+        for k, v in data.get("/Questions", {}).items():
             current_questions[k] = v
         data["/Questions"] = json.dumps(current_questions)
 
