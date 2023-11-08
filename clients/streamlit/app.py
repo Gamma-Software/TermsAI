@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 import streamlit as st
 from app_extra import sidebar, description, upload, processing, display_metadata
+from process_doc.utils import generate_report
 
 # Setup langsmith variables
 os.environ["LANGCHAIN_TRACING_V2"] = str(st.secrets["langsmith"]["tracing"])
@@ -44,6 +45,12 @@ else:
         disabled=(not features_1 and not features_2),
         key="metadata",
     )
+    features_4 = c1.checkbox(
+        "Generate report",
+        value=(features_1 or features_2),
+        disabled=(not features_1 and not features_2),
+        key="report",
+    )
     feature_selection_info = st.empty()
 
     QUESTIONS = None
@@ -59,8 +66,14 @@ else:
     question_info = st.empty()
     st.divider()
 
+    language = st.selectbox(
+        "Select result language", ["English", "French"], key="language"
+    )
+    st.divider()
+
     # 3. Wait for the app
     zipped_processed_file = ""
+    report_path = None
     execute_bt = st.button("Execute")
     if execute_bt:
         error = False
@@ -85,8 +98,13 @@ else:
             features_3,
             raw_data,
             output_folder,
+            language,
         )
         processing.display_result(output_folder)
+
+        if features_4:
+            report_path = Path("/tmp/report.csv")
+            generate_report(output_folder, report_path)
 
     # 4. You can now download the contract with included metadata of the
     # questions and answers and the summary
@@ -96,4 +114,11 @@ else:
             data=zipped_processed_file.read_bytes(),
             file_name=zipped_processed_file.name,
             help="Download the processed contract with the metadata",
+        )
+    if features_4 and report_path:
+        st.download_button(
+            "Download report",
+            data=report_path.read_bytes(),
+            file_name=report_path.name,
+            help="Download the report with all the results from all the PDF",
         )

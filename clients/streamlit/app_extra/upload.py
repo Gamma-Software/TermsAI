@@ -24,7 +24,7 @@ def upload(output_folder: Path) -> List[Dict[str, str]]:
             if output_folder.exists():
                 shutil.rmtree(output_folder)
             if not output_folder.exists():
-                output_folder.mkdir(parents=True)
+                output_folder.mkdir(parents=True, exist_ok=True)
 
             def treat_file(file, output_folder: Path):
                 # Write it into a temp file

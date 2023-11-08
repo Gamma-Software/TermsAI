@@ -10,16 +10,21 @@ The features are fully customizable. You can choose to activate one or multiple 
 
 1. Upload a contract (or multiple ones)
     - PDF format (text or scanned)
-2. Ask any questions you have about the contract
+2. Select the features to activate
+    - Question Answering: Ask any questions you have about the contract
+    - Summary: Get a summary of the contract
+    - Include Metadata: Include the results in the contract metadata
+    - Generate report: Generate a report of the results
+3. Ask any questions you have about the contract
     - You can ask one questions
     - You can ask multiple questions
     - You can ask questions in different languages
     - Or you can skip this part
-3. Wait for the app
+4. Wait for the app
     - To process the contract
     - Answer your questions
     - And give you a summary of the contract
-4. You can now download the contract with included metadata of the questions and answers and the summary"""
+5. You can now download the contract with included metadata of the questions and answers and the summary and the report"""
 
 how_to_use_metadata = """## User guide
 

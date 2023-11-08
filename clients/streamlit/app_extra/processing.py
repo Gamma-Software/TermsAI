@@ -19,6 +19,7 @@ def processing(
     add_metadata,
     data: List[Dict[str, str]],
     output_folder: Path,
+    language,
 ) -> Path:
     with st.status("Processing file(s)...", expanded=True) as status:
 
@@ -27,17 +28,14 @@ def processing(
             # And create a vector store to each paragraph
             name = _file["pdf"]
             st.write(f"Extract the text from {name}...")
-            st.session_state["extracted_data"] = extract_clean_doc(_file)
+            extracted_data = extract_clean_doc(_file)
 
             st.write(f"Embed the text of {name} in vector store...")
-            st.session_state["vector_store"] = embed_doc(
-                st.session_state["extracted_data"]
+            vector_store = embed_doc(
+                Path(name).name.replace(".pdf", ""), extracted_data
             )
 
-            if (
-                not st.session_state["extracted_data"]
-                or not st.session_state["vector_store"]
-            ):
+            if not extracted_data or not vector_store:
                 st.stop()
                 st.write("Processing of files failed !")
                 status.update(
@@ -46,9 +44,7 @@ def processing(
 
             def summarize():
                 st.write(f"Summarizing...")
-                _, _summary = summarize_chain_doc_exec(
-                    st.session_state["extracted_data"]
-                )
+                _, _summary = summarize_chain_doc_exec(extracted_data)
                 st.write("Summarized!")
                 return _summary
 
@@ -58,10 +54,8 @@ def processing(
                     if _question == "":
                         continue
                     st.write(f"Answer question... {q_id+1}/{len(questions)}")
-                    _, _answers = simple_qa_chain(
-                        _question, st.session_state["vector_store"]
-                    )
-                    # docs_2, answers_2 = simple_qa_chain_long(question, st.session_state["extracted_data"])
+                    _, _answers = simple_qa_chain(_question, vector_store, language)
+                    # docs_2, answers_2 = simple_qa_chain_long(question, extracted_data)
                     # elif terms_url != "":
                     #    answers = overall_chain_url_exec([question], terms_url)
                     # for k, v in answers.items():
@@ -90,7 +84,7 @@ def processing(
 
         file_to_return = []
         for _id, _file in enumerate(data):
-            name = _file["pdf"].name
+            name = _file["pdf"].name.replace(" ", "_").replace(".pdf", "")
             st.write(f"Processing file {_id + 1}/{len(data)}: {name}")
             file_to_return.append(process_file(_file, _id + 1, len(data)))
             if _id + 1 != len(data):
@@ -117,7 +111,8 @@ def processing(
 def display_result(output_dir: Path):
     for file in output_dir.iterdir():
         if file.suffix == ".pdf":
-            st.subheader(file.name)
+            name = file.name.replace(" ", "_")
+            st.subheader(name)
             with file.open("rb") as f:
                 display_pdf_metadata(f)
         st.divider()
