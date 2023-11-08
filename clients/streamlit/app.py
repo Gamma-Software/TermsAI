@@ -86,7 +86,7 @@ else:
             raw_data,
             output_folder,
         )
-        processing.display_pdf_metadata(output_folder)
+        processing.display_result(output_folder)
 
     # 4. You can now download the contract with included metadata of the
     # questions and answers and the summary
