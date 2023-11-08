@@ -1,7 +1,0 @@
-streamlit
-openai
-langchain
-redis
-tiktoken
-chromadb
-beautifulsoup4
