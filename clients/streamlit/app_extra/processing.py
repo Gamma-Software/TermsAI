@@ -25,10 +25,11 @@ def processing(
         def process_file(_file, _id, length) -> str:
             # We process the pdf or photo to extract the text
             # And create a vector store to each paragraph
-            st.write(f"Extract the text from {_file}...")
+            name = _file["pdf"]
+            st.write(f"Extract the text from {name}...")
             st.session_state["extracted_data"] = extract_clean_doc(_file)
 
-            st.write(f"Embed the text of {_file} in vector store...")
+            st.write(f"Embed the text of {name} in vector store...")
             st.session_state["vector_store"] = embed_doc(
                 st.session_state["extracted_data"]
             )
@@ -39,6 +40,9 @@ def processing(
             ):
                 st.stop()
                 st.write("Processing of files failed !")
+                status.update(
+                    label="Processing of files failed !", state="error", expanded=True
+                )
 
             def summarize():
                 st.write(f"Summarizing...")
@@ -53,7 +57,7 @@ def processing(
                 for q_id, _question in enumerate(questions):
                     if _question == "":
                         continue
-                    st.write(f"Answer question... {q_id}/{len(questions)}")
+                    st.write(f"Answer question... {q_id+1}/{len(questions)}")
                     _, _answers = simple_qa_chain(
                         _question, st.session_state["vector_store"]
                     )
@@ -66,7 +70,7 @@ def processing(
                     # question_container.write(docs_2)
                     # question_container.write(answers_2)
                     result.append((_question, _answers["output_text"]))
-                    st.write(f"Question answered... {q_id}/{len(questions)}")
+                    st.write(f"Question answered... {q_id+1}/{len(questions)}")
                 return result
 
             metadata = {}
@@ -74,9 +78,9 @@ def processing(
                 metadata["/Subject"] = summarize()
 
             if questionning:
-                d = []
+                d = {}
                 for _id, q in enumerate(answer_question()):
-                    d.append({q[0]: q[1]})
+                    d[q[0]] = q[1]
                 metadata["/Questions"] = json.dumps(d)
 
             file_to_return = ""
@@ -106,13 +110,14 @@ def processing(
             return None
 
         st.write("Processing files done!")
+        status.update(label="Processing file(s)...", state="complete", expanded=False)
         return Path(zipped_files)
 
 
 def display_result(output_dir: Path):
-    with st.expander("See results"):
-        for file in output_dir.iterdir():
-            if file.suffix == ".pdf":
-                st.subheader(file.name)
-                display_pdf_metadata(file)
-            st.divider()
+    for file in output_dir.iterdir():
+        if file.suffix == ".pdf":
+            st.subheader(file.name)
+            with file.open("rb") as f:
+                display_pdf_metadata(f)
+        st.divider()

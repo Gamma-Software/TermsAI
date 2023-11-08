@@ -11,7 +11,7 @@ def display_pdf_metadata(pdf_file):
     for info in doc.info:
         with st.expander("See results"):
             for k, v in info.items():
-                if k not in ["Questions", "Summary"]:
+                if k not in ["Questions", "Subject"]:
                     continue
 
                 def dis(v):
@@ -20,8 +20,8 @@ def display_pdf_metadata(pdf_file):
                     except Exception:
                         return v
 
-                if k == "Summary":
-                    st.write("Summary")
+                if k == "Subject":
+                    st.write("Subject")
                     st.caption(dis(v))
                     st.divider()
                 else:
