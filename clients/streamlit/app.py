@@ -58,6 +58,10 @@ else:
             file_name="CDI-OpenAI.pdf",
         )
 
+    with st.expander("⚠️ Limitations"):
+        st.markdown(description.limitations)
+    with st.expander("📚 Know More"):
+        st.markdown(description.know_more)
     # Check if openai api key is set
     if "openai_api_key" not in st.session_state:
         st.info("Please add your OpenAI API key to continue.")
