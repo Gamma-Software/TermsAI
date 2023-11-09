@@ -111,6 +111,9 @@ else:
         if not raw_data:
             file_upload_info.info("Please upload a contract to continue")
             error = True
+        elif len(raw_data) > 3:
+            file_upload_info.info("You can only upload maximum 3 contracts at a time")
+            error = True
         if not features_1 and not features_2:
             feature_selection_info.info(
                 "Please activate at least one feature to continue"
@@ -118,6 +121,9 @@ else:
             error = True
         if features_1 and QUESTIONS == "":
             question_info.info("Please enter at least one question to continue")
+            error = True
+        elif len(list(QUESTIONS)) > 5:
+            question_info.info("You can only ask maximum 5 questions at a time")
             error = True
         if error:
             st.stop()
