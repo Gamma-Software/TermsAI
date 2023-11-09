@@ -13,19 +13,50 @@ os.environ["LANGCHAIN_ENDPOINT"] = st.secrets["langsmith"]["api_url"]
 os.environ["LANGCHAIN_API_KEY"] = st.secrets["langsmith"]["api_key"]
 os.environ["LANGCHAIN_PROJECT"] = st.secrets["langsmith"]["project"]
 
+st.markdown(
+    """
+<style>
+div.stButton > button:first-child {
+    background-color: #0F1116;
+    color:#ffffff;
+}
+div.stButton > button:hover {
+    background-color: #0F1116;
+    color:#ff0000;
+    }
+</style>""",
+    unsafe_allow_html=True,
+)
+
 
 # Add sidebar
 feature = sidebar.sidebar()
 
 if feature == "Display PDF metadata":
     st.title("Display PDF metadata")
+
+    with st.expander("ℹ️ How to use"):
+        st.markdown(description.how_to_use_metadata)
+
     display_metadata.display_metadata()
-    st.markdown(description.how_to_use_metadata)
 else:
     # Show title and description
     st.markdown(description.short_description)
     with st.expander("ℹ️ How to use"):
         st.markdown(description.how_to_use_process)
+        st.markdown(
+            "## Example\nTake this contract as an example (these are French random Contracts):"
+        )
+        ste.download_button(
+            "Download the processed contract",
+            data=Path("assets/CDI-Deliveroo.pdf").read_bytes(),
+            file_name="CDI-Deliveroo.pdf",
+        )
+        ste.download_button(
+            "Download the processed contract",
+            data=Path("assets/CDI-OpenAI.pdf").read_bytes(),
+            file_name="CDI-OpenAI.pdf",
+        )
 
     # Check if openai api key is set
     if "openai_api_key" not in st.session_state:
@@ -107,20 +138,6 @@ else:
 
     # 4. You can now download the contract with included metadata of the
     # questions and answers and the summary
-    st.markdown(
-        """
-    <style>
-    div.stButton > button:first-child {
-        background-color: #0F1116;
-        color:#ffffff;
-    }
-    div.stButton > button:hover {
-        background-color: #0F1116;
-        color:#ff0000;
-        }
-    </style>""",
-        unsafe_allow_html=True,
-    )
 
     if zipped_processed_file:
         ste.download_button(

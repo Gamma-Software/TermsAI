@@ -2,6 +2,7 @@ import streamlit as st
 from pdfminer.pdfparser import PDFParser
 from pdfminer.pdfdocument import PDFDocument
 import json
+import pandas as pd
 
 
 def display_pdf_metadata(pdf_file):
@@ -66,15 +67,19 @@ def display_metadata():
         help="could be a picture or a pdf",
     )
     if uploaded_pdf:
+        metadatas = {}
         for file in uploaded_pdf:
             name = file.name.replace(" ", "_")
+            metadatas[name] = get_metadata(file)
             st.subheader(name)
+            if metadatas[name] == {}:
+                del metadatas[name]
+                st.write("No metadata found")
+                continue
             display_pdf_metadata(file)
 
-            import pandas as pd
-
-            metadatas = {}
-            metadatas[name] = get_metadata(file)
-            # Generate report
+        # Generate report
+        if metadatas != {}:
+            st.subheader("Report")
             report = pd.DataFrame(metadatas)
-            st.dataframe(report)
+            st.dataframe(report, use_container_width=True)
