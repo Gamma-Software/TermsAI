@@ -238,5 +238,4 @@ def generate_report(output_dir: Path, output_report: Path):
                 metadatas[name] = get_metadata(f)
     # Generate report
     report = pd.DataFrame(metadatas)
-    st.sidebar.dataframe(report)
     report.to_csv(output_report.absolute())

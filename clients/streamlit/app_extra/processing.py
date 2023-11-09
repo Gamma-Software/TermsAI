@@ -19,7 +19,6 @@ def processing(
     add_metadata,
     data: List[Dict[str, str]],
     output_folder: Path,
-    language,
 ) -> Path:
     with st.status("Processing file(s)...", expanded=True) as status:
 
@@ -54,7 +53,7 @@ def processing(
                     if _question == "":
                         continue
                     st.write(f"Answer question... {q_id+1}/{len(questions)}")
-                    _, _answers = simple_qa_chain(_question, vector_store, language)
+                    _, _answers = simple_qa_chain(_question, vector_store)
                     # docs_2, answers_2 = simple_qa_chain_long(question, extracted_data)
                     # elif terms_url != "":
                     #    answers = overall_chain_url_exec([question], terms_url)

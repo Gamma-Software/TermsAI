@@ -5,6 +5,7 @@ from pathlib import Path
 import streamlit as st
 from app_extra import sidebar, description, upload, processing, display_metadata
 from process_doc.utils import generate_report
+import streamlit_ext as ste
 
 # Setup langsmith variables
 os.environ["LANGCHAIN_TRACING_V2"] = str(st.secrets["langsmith"]["tracing"])
@@ -19,9 +20,13 @@ feature = sidebar.sidebar()
 if feature == "Display PDF metadata":
     st.title("Display PDF metadata")
     display_metadata.display_metadata()
+    st.markdown(description.how_to_use_metadata)
 else:
     # Show title and description
     st.markdown(description.short_description)
+    with st.expander("ℹ️ How to use"):
+        st.markdown(description.how_to_use_process)
+
     # Check if openai api key is set
     if "openai_api_key" not in st.session_state:
         st.info("Please add your OpenAI API key to continue.")
@@ -66,11 +71,6 @@ else:
     question_info = st.empty()
     st.divider()
 
-    language = st.selectbox(
-        "Select result language", ["English", "French"], key="language"
-    )
-    st.divider()
-
     # 3. Wait for the app
     zipped_processed_file = ""
     report_path = None
@@ -98,7 +98,6 @@ else:
             features_3,
             raw_data,
             output_folder,
-            language,
         )
         processing.display_result(output_folder)
 
@@ -108,17 +107,28 @@ else:
 
     # 4. You can now download the contract with included metadata of the
     # questions and answers and the summary
+    st.markdown(
+        """
+    <style>
+    div.stButton > button:first-child {
+        background-color: #0F1116;
+        color:#ffffff;
+    }
+    div.stButton > button:hover {
+        background-color: #0F1116;
+        color:#ff0000;
+        }
+    </style>""",
+        unsafe_allow_html=True,
+    )
+
     if zipped_processed_file:
-        st.download_button(
+        ste.download_button(
             "Download the processed contract",
             data=zipped_processed_file.read_bytes(),
             file_name=zipped_processed_file.name,
-            help="Download the processed contract with the metadata",
         )
     if features_4 and report_path:
-        st.download_button(
-            "Download report",
-            data=report_path.read_bytes(),
-            file_name=report_path.name,
-            help="Download the report with all the results from all the PDF",
+        ste.download_button(
+            "Download report", data=report_path.read_bytes(), file_name=report_path.name
         )
