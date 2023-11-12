@@ -7,11 +7,11 @@ import streamlit as st
 def upload(output_folder: Path) -> List[Dict[str, str]]:
     choice = st.radio(
         "How do you want to retrieve the Terms of the contract ?",
-        ("Upload a file", "Enter the raw text"),
+        ("Upload files", "Enter the raw text"),
     )
 
     data = None
-    if choice == "Upload a file":
+    if choice == "Upload files":
         uploaded_file = st.file_uploader(
             "Upload contract PDFs",
             # ["pdf", "png", "jpg", "jpeg", "txt", "md"],
@@ -24,7 +24,7 @@ def upload(output_folder: Path) -> List[Dict[str, str]]:
             if output_folder.exists():
                 shutil.rmtree(output_folder)
             if not output_folder.exists():
-                output_folder.mkdir(parents=True)
+                output_folder.mkdir(parents=True, exist_ok=True)
 
             def treat_file(file, output_folder: Path):
                 # Write it into a temp file

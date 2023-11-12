@@ -69,9 +69,11 @@ def extract_clean_doc(data) -> List[Document]:
     return extracted_docs
 
 
-def embed_doc(docs: List[Document]) -> VectorStoreRetriever:
+def embed_doc(filename, docs: List[Document]) -> VectorStoreRetriever:
     embeddings = OpenAIEmbeddings()
     texts = [doc.page_content for doc in docs]
     metadatas = [doc.metadata for doc in docs]
-    docsearch = Chroma.from_texts(texts, embeddings, metadatas=metadatas).as_retriever()
+    docsearch = Chroma.from_texts(
+        texts, embeddings, metadatas=metadatas, collection_name=filename
+    ).as_retriever()
     return docsearch

@@ -10,6 +10,9 @@ import streamlit as st
 import PyPDF2
 import pdfplumber
 import json
+from pathlib import Path
+from app_extra.display_metadata import get_metadata
+import pandas as pd
 
 # endpoint=st.secrets["ocrspace"]["endpoint"],
 # api_key=st.secrets["ocrspace"]["api_key"],
@@ -223,3 +226,16 @@ def integrated_metadata_in_pdf(file_path, data):
     with open(file_path["pdf"], "wb") as output_pdf_file:
         pdf_writer.write(output_pdf_file)
     return file_path["pdf"]
+
+
+def generate_report(output_dir: Path, output_report: Path):
+    """Read pdf metadata and generate a csv report"""
+    metadatas = {}
+    for file in output_dir.iterdir():
+        if file.suffix == ".pdf":
+            name = file.name.replace(" ", "_")
+            with file.open("rb") as f:
+                metadatas[name] = get_metadata(f)
+    # Generate report
+    report = pd.DataFrame(metadatas)
+    report.to_csv(output_report.absolute())

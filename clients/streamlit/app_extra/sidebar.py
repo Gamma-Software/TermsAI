@@ -19,13 +19,7 @@ def sidebar():
             st.session_state["openai_api_key"] = st.secrets["openai_api_key"]
         if st.session_state.get("openai_api_key"):
             os.environ["OPENAI_API_KEY"] = st.session_state["openai_api_key"]
-
         features = st.selectbox(
             "Select a feature", ["Process PDF", "Display PDF metadata"]
         )
-        # How to use
-        if features == "Process PDF":
-            st.markdown(description.how_to_use_process)
-        else:
-            st.markdown(description.how_to_use_metadata)
         return features
