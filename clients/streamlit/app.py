@@ -72,6 +72,18 @@ else:
     # 1. Upload a contract (or multiple ones)
     output_folder = Path("/tmp/termsai")
     raw_data = upload.upload(output_folder)
+    metadatas = {}
+    for file in raw_data:
+        name = file["pdf"].name.replace(" ", "_")
+        with open(file["pdf"], "rb") as f:
+            metadatas[name] = display_metadata.get_metadata(f)
+            st.subheader(name)
+            if metadatas[name] == {}:
+                del metadatas[name]
+                st.write("No metadata found")
+                continue
+            display_metadata.display_pdf_metadata(f)
+
     file_upload_info = st.empty()
     st.divider()
     # 2. Ask any questions you have about the contract
