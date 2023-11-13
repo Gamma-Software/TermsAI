@@ -55,7 +55,7 @@ else:
         )
         ste.download_button(
             "Download the processed contract",
-            data=(file_script / "assets" /" CDI-OpenAI.pdf").read_bytes(),
+            data=(file_script / "assets" /"CDI-OpenAI.pdf").read_bytes(),
             file_name="CDI-OpenAI.pdf",
         )
 
