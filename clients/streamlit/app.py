@@ -42,7 +42,7 @@ if feature == "Display PDF metadata":
 else:
     # Show title and description
     st.markdown(description.short_description)
-    with st.expander("ℹ️ How to use"):
+    with st.expander("ℹ️ How to use & Example"):
         st.markdown(description.how_to_use_process)
         st.markdown(
             "## Example\nTake this contract as an example (these are French random Contracts):"
@@ -72,17 +72,17 @@ else:
     # 1. Upload a contract (or multiple ones)
     output_folder = Path("/tmp/termsai")
     raw_data = upload.upload(output_folder)
-    metadatas = {}
-    for file in raw_data:
-        name = file["pdf"].name.replace(" ", "_")
-        with open(file["pdf"], "rb") as f:
-            metadatas[name] = display_metadata.get_metadata(f)
-            st.subheader(name)
-            if metadatas[name] == {}:
-                del metadatas[name]
-                st.write("No metadata found")
-                continue
-            display_metadata.display_pdf_metadata(f)
+    #metadatas = {}
+    #for file in raw_data:
+    #    name = file["pdf"].name.replace(" ", "_")
+    #    with open(file["pdf"], "rb") as f:
+    #        metadatas[name] = display_metadata.get_metadata(f)
+    #        st.subheader(name)
+    #        if metadatas[name] == {}:
+    #            del metadatas[name]
+    #            st.write("No metadata found")
+    #            continue
+    #        display_metadata.display_pdf_metadata(f)
 
     file_upload_info = st.empty()
     st.divider()

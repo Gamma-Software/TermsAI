@@ -3,16 +3,14 @@ import os
 from os import mkdir
 import shutil
 from typing import List
-from pdfminer.pdfpage import PDFPage
-from pdf2image.pdf2image import convert_from_path
 import process_doc.ocrspace_api as ocrspace
 import streamlit as st
 import PyPDF2
-import pdfplumber
 import json
 from pathlib import Path
 from app_extra.display_metadata import get_metadata
 import pandas as pd
+
 
 # endpoint=st.secrets["ocrspace"]["endpoint"],
 # api_key=st.secrets["ocrspace"]["api_key"],
@@ -35,25 +33,25 @@ def get_pdf_searchable_pages(file_path):
     return result
 
 
+
 def get_pdf_number_pages(file_path):
-    with pdfplumber.open(file_path) as pdf:
-        length = len(pdf.pages)
+    with open(file_path, "rb") as f:
+        pdf_reader = PyPDF2.PdfFileReader(f)
+        length = pdf_reader.getNumPages()
     return length
-
-
-def pdf_to_jpeg(file_path, output_path, page_id):
-    """Parse a specific page of a pdf that cannot be read into a jpeg"""
-    pages = convert_from_path(
-        file_path, 200, thread_count=4, first_page=page_id, last_page=page_id
-    )
-    pages[0].save(output_path, "JPEG")
-    return output_path
 
 
 def extract_text_from_searchable_pdf(file_path, page_id) -> str:
     """Extract the text from a searchable pdf"""
-    with pdfplumber.open(file_path) as pdf:
-        text_to_return = pdf.pages[page_id].extract_text()
+    # creating a pdf reader object
+    reader = PyPDF2.PdfReader(file_path)
+
+    # getting a specific page from the pdf file
+    page = reader.pages[page_id]
+
+    # extracting text from page
+    text_to_return = page.extract_text()
+
     # remove wathermark (remove last line)
     text_to_return = "\n".join(text_to_return.split("\n")[:-1])
     return text_to_return
@@ -94,9 +92,8 @@ def make_pdf_searchable(
     if os.path.getsize(file_path) > 1000000:
         raise ValueError("The file is too big to be processed")
     # check the number of pages
-    with pdfplumber.open(file_path) as pdf:
-        if len(pdf.pages) > 3:
-            raise ValueError("The file has too many pages to be processed")
+    if len(get_pdf_number_pages(file_path)) > 3:
+        raise ValueError("The file has too many pages to be processed")
     # Check extension
     if not file_path.endswith(".pdf"):
         raise ValueError("The file is not a pdf")
