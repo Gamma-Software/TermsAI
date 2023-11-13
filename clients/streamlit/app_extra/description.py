@@ -31,6 +31,8 @@ This feature will read your contract and display the metadata of the contract.""
 
 limitations = """
 For Demo purposes only the app limits you to upload maximum 3 contracts at a time and maximum 5 questions at a time.
+
+The contracts cannot exceed 4 pages.
 """
 
 know_more = """

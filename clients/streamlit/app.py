@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 import streamlit as st
 from app_extra import sidebar, description, upload, processing, display_metadata
-from process_doc.utils import generate_report
+from process_doc.utils import generate_report, get_pdf_number_pages
 import streamlit_ext as ste
 
 # Setup langsmith variables
@@ -136,6 +136,10 @@ else:
         elif len(raw_data) > 3:
             file_upload_info.info("You can only upload maximum 3 contracts at a time")
             error = True
+        for file in raw_data:
+            if get_pdf_number_pages(file["pdf"]) > 4:
+                file_upload_info.info("The contract cannot exceed 4 pages")
+                error = True
         if not features_1 and not features_2:
             feature_selection_info.info(
                 "Please activate at least one feature to continue"
@@ -148,6 +152,7 @@ else:
             elif len(list(QUESTIONS)) > 5:
                 question_info.info("You can only ask maximum 5 questions at a time")
                 error = True
+
         if error:
             st.stop()
 
