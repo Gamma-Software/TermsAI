@@ -1,35 +1,33 @@
 import streamlit as st
-from pdfminer.pdfparser import PDFParser
-from pdfminer.pdfdocument import PDFDocument
 import json
 import pandas as pd
-
+import PyPDF2
 
 def display_pdf_metadata(pdf_file):
-    parser = PDFParser(pdf_file)
-    doc = PDFDocument(parser)
+    info = {}
+    pdf = PyPDF2.PdfReader(pdf_file)
+    info = pdf.metadata
 
-    for info in doc.info:
-        with st.expander("See results"):
-            for k, v in info.items():
-                if k not in ["Questions", "Subject"]:
-                    continue
+    with st.expander("See results"):
+        for k, v in info.items():
+            if k not in ["/Questions", "/Subject"]:
+                continue
 
-                def dis(v):
-                    try:
-                        return v.decode()
-                    except Exception:
-                        return v
+            def dis(v):
+                try:
+                    return v.decode()
+                except Exception:
+                    return v
 
-                if k == "Subject":
-                    st.write("Subject")
-                    st.caption(dis(v))
+            if k == "/Subject":
+                st.write("Subject")
+                st.caption(dis(v))
+                st.divider()
+            else:
+                for k_, v_ in json.loads(dis(v)).items():
+                    st.write(k_.replace("/", " "))
+                    st.caption(v_)
                     st.divider()
-                else:
-                    for k_, v_ in json.loads(dis(v)).items():
-                        st.write(k_)
-                        st.caption(v_)
-                        st.divider()
 
 
 def get_metadata(pdf_file):
@@ -40,21 +38,20 @@ def get_metadata(pdf_file):
     # | Question 1    | Q1 | Q2 | ...
     # | Question 2    | Q21 | Q22 | ...
     # ...
-    parser = PDFParser(pdf_file)
-    doc = PDFDocument(parser)
+    pdf = PyPDF2.PdfReader(pdf_file)
+    info = pdf.metadata
     metadata = {}
-    for info in doc.info:
-        for k, v in info.items():
-            if k not in ["Questions", "Subject"]:
-                continue
-            try:
-                if k == "Questions":
-                    for k_, v_ in json.loads(v.decode()).items():
-                        metadata[k_] = v_
-                else:
-                    metadata[k] = v.decode()
-            except Exception:
-                metadata[k] = v
+    for k, v in info.items():
+        if k not in ["/Questions", "/Subject"]:
+            continue
+        try:
+            if k == "/Questions":
+                for k_, v_ in json.loads(v.decode()).items():
+                    metadata[k_.replace("/", "")] = v_
+            else:
+                metadata[k.replace("/", "")] = v.decode()
+        except Exception:
+            metadata[k.replace("/", "")] = v
     return metadata
 
 

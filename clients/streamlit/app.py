@@ -1,5 +1,6 @@
 """Main Streamlit app file."""
 
+import sys
 import os
 from pathlib import Path
 import streamlit as st
@@ -12,6 +13,10 @@ os.environ["LANGCHAIN_TRACING_V2"] = str(st.secrets["langsmith"]["tracing"])
 os.environ["LANGCHAIN_ENDPOINT"] = st.secrets["langsmith"]["api_url"]
 os.environ["LANGCHAIN_API_KEY"] = st.secrets["langsmith"]["api_key"]
 os.environ["LANGCHAIN_PROJECT"] = st.secrets["langsmith"]["project"]
+
+__import__('pysqlite3')
+sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+print("Patch applied")
 
 st.markdown(
     """
@@ -136,12 +141,13 @@ else:
                 "Please activate at least one feature to continue"
             )
             error = True
-        if features_1 and QUESTIONS == "":
-            question_info.info("Please enter at least one question to continue")
-            error = True
-        elif len(list(QUESTIONS)) > 5:
-            question_info.info("You can only ask maximum 5 questions at a time")
-            error = True
+        if QUESTIONS:
+            if features_1 and QUESTIONS == "":
+                question_info.info("Please enter at least one question to continue")
+                error = True
+            elif len(list(QUESTIONS)) > 5:
+                question_info.info("You can only ask maximum 5 questions at a time")
+                error = True
         if error:
             st.stop()
 

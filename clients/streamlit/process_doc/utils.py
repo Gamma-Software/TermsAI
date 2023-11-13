@@ -22,22 +22,23 @@ def get_pdf_searchable_pages(file_path):
     """Parse the pdf and result the pages that are searchable and the ones that are not
     If false -> the page is not searchable"""
     result = []
-    page_num = None
     with open(file_path, "rb") as infile:
-        for page_num, page in enumerate(PDFPage.get_pages(infile)):
-            if page.resources is not None:
-                result.append((page_num, "Font" in page.resources.keys()))
+        pdf_reader = PyPDF2.PdfReader(infile)
+        for idx,  page in enumerate(pdf_reader.pages):
+            if "/Font" in str(page):
+                result.append((idx, True))
+            else:
+                result.append((idx, False))
 
-    if page_num is None:
+    if not result:
         raise ValueError("Not a valid document")
     return result
 
 
-
 def get_pdf_number_pages(file_path):
     with open(file_path, "rb") as f:
-        pdf_reader = PyPDF2.PdfFileReader(f)
-        length = pdf_reader.getNumPages()
+        pdf_reader = PyPDF2.PdfReader(f)
+        length = len(pdf_reader.pages)
     return length
 
 
@@ -92,7 +93,7 @@ def make_pdf_searchable(
     if os.path.getsize(file_path) > 1000000:
         raise ValueError("The file is too big to be processed")
     # check the number of pages
-    if len(get_pdf_number_pages(file_path)) > 3:
+    if get_pdf_number_pages(file_path) > 3:
         raise ValueError("The file has too many pages to be processed")
     # Check extension
     if not file_path.endswith(".pdf"):
