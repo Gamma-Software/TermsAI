@@ -47,14 +47,15 @@ else:
         st.markdown(
             "## Example\nTake this contract as an example (these are French random Contracts):"
         )
+        file_script = Path(__file__).parent
         ste.download_button(
             "Download the processed contract",
-            data=Path("assets/CDI-Deliveroo.pdf").read_bytes(),
+            data=(file_script / "assets" / "CDI-Deliveroo.pdf").read_bytes(),
             file_name="CDI-Deliveroo.pdf",
         )
         ste.download_button(
             "Download the processed contract",
-            data=Path("assets/CDI-OpenAI.pdf").read_bytes(),
+            data=(file_script / "assets" /" CDI-OpenAI.pdf").read_bytes(),
             file_name="CDI-OpenAI.pdf",
         )
 
