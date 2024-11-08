@@ -2,7 +2,7 @@
 
 import os
 from typing import List
-from langchain.chains import LLMChain
+from langchain.chains.llm import LLMChain
 from langchain_openai import ChatOpenAI
 from langchain.prompts import PromptTemplate
 from langchain.pydantic_v1 import BaseModel, Field

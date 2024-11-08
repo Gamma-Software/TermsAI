@@ -6,7 +6,6 @@ from pathlib import Path
 import streamlit as st
 from app_extra import sidebar, description, upload, processing, display_metadata
 from process_doc.utils import generate_report, get_pdf_number_pages
-import streamlit_ext as ste
 
 # Setup langsmith variables
 os.environ["LANGCHAIN_TRACING_V2"] = str(st.secrets["langsmith"]["tracing"])
@@ -14,9 +13,6 @@ os.environ["LANGCHAIN_ENDPOINT"] = st.secrets["langsmith"]["api_url"]
 os.environ["LANGCHAIN_API_KEY"] = st.secrets["langsmith"]["api_key"]
 os.environ["LANGCHAIN_PROJECT"] = st.secrets["langsmith"]["project"]
 
-__import__('pysqlite3')
-sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
-print("Patch applied")
 
 st.markdown(
     """
@@ -53,12 +49,12 @@ else:
             "## Example\nTake this contract as an example (these are French random Contracts):"
         )
         file_script = Path(__file__).parent
-        ste.download_button(
+        st.download_button(
             "Download the processed contract",
             data=(file_script / "assets" / "CDI-Deliveroo.pdf").read_bytes(),
             file_name="CDI-Deliveroo.pdf",
         )
-        ste.download_button(
+        st.download_button(
             "Download the processed contract",
             data=(file_script / "assets" /"CDI-OpenAI.pdf").read_bytes(),
             file_name="CDI-OpenAI.pdf",
@@ -174,12 +170,12 @@ else:
     # questions and answers and the summary
 
     if zipped_processed_file:
-        ste.download_button(
+        st.download_button(
             "Download the processed contract",
             data=zipped_processed_file.read_bytes(),
             file_name=zipped_processed_file.name,
         )
     if features_4 and report_path:
-        ste.download_button(
+        st.download_button(
             "Download report", data=report_path.read_bytes(), file_name=report_path.name
         )
